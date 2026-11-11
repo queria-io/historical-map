@@ -1,24 +1,20 @@
 // 選んだ当時の市町村の統計の欄。Queria の公開データセットに、ブラウザから SQL を実行して組み立てる
 import type { ReactNode } from "react";
-import { AgeShare, LineChart, type Point } from "./kit/charts";
 import { ShareButtons } from "./kit/ShareButtons";
 import { AsyncNote, useAsync } from "./kit/useAsync";
 import { query } from "./queria";
+import { Then } from "./Then";
 import {
   beforeSql,
   chainSql,
   type Before,
   type City,
   citySql,
-  type LandPrice,
-  landPriceSql,
   type Now,
   nowSql,
   type Registry,
   registrySql,
   type Step,
-  type Yearly,
-  yearlySql,
 } from "./sql";
 
 const year = (d: unknown) => (d == null ? "" : new Date(Number(d)).getUTCFullYear().toString());
@@ -81,7 +77,7 @@ export const Panel = ({ id, name, date }: { id: string; name: string; date: stri
         </p>
       )}
       <Chain before={before} steps={steps} />
-      {main && <Charts code={main.code} name={mainName} />}
+      {main && <Then code={main.code} name={mainName} target={Number(date.slice(0, 4))} />}
       <p className="source">
         データ: Queria の <a href="https://queria.io/datasets/queria/codh" target="_blank" rel="noopener">codh</a>・
         <a href="https://queria.io/datasets/queria/e_stat" target="_blank" rel="noopener">e_stat</a>・
@@ -169,26 +165,3 @@ const Chain = ({ before, steps }: { before: Before[]; steps: Step[] }) => {
   );
 };
 
-/** グラフは表の後から読む。統計の表を広く読むので数秒かかる */
-const Charts = ({ code, name }: { code: string; name: string }) => {
-  const yearly = useAsync(() => query<Yearly>(yearlySql(code)), [code]);
-  const land = useAsync(() => query<LandPrice>(landPriceSql(code)), [code]);
-  const rows = yearly.status === "done" ? yearly.value : [];
-  const ages = rows.flatMap((r) =>
-    r.young != null && r.working != null && r.old != null && r.year % 10 === 0
-      ? [{ year: r.year, young: r.young, working: r.working, old: r.old }]
-      : [],
-  );
-  const people = rows.flatMap((r): Point[] => (r.population != null ? [[r.year, r.population]] : []));
-  const prices = land.status === "done" ? land.value.map((r): Point => [r.year, r.price]) : [];
-  return (
-    <section className="charts">
-      <h3>年齢構成の移り変わり<span className="meta">今の{name}の区域</span></h3>
-      {ages.length ? <AgeShare rows={ages} /> : <AsyncNote state={yearly} empty />}
-      <h3>人口の推移<span className="meta">今の{name}の区域</span></h3>
-      {people.length ? <LineChart series={[{ label: "人口", points: people }]} /> : <AsyncNote state={yearly} empty />}
-      <h3>住宅地の地価<span className="meta">今の{name}・中央値（円/m²）</span></h3>
-      {prices.length ? <LineChart series={[{ label: "地価", points: prices }]} /> : <AsyncNote state={land} empty />}
-    </section>
-  );
-};

@@ -64,14 +64,6 @@ WHERE area_level = 'municipality' AND resident_kind = 'japanese' AND area_code =
 ORDER BY year
 LIMIT 1`;
 
-// --- 今の市区町村の推移と年齢 3 区分 (社会・人口統計体系。今の区域に組み替えた値) ---
-export type Yearly = { year: number; population: number | null; young: number | null; working: number | null; old: number | null };
-export const yearlySql = (code: string) => `
-PIVOT (
-  SELECT year, cat01, value FROM e_stat.ssds.a_municipal_population
-  WHERE area = ${lit(code)} AND cat01 IN ('A1101', 'A1301', 'A1302', 'A1303') AND value IS NOT NULL
-) ON cat01 IN ('A1101' AS population, 'A1301' AS young, 'A1302' AS working, 'A1303' AS old)
-USING any_value(value) GROUP BY year ORDER BY year`;
 
 // --- 今の市区町村の住宅地の地価 (地価公示・地価調査。1995 年から) ---
 // 地点の市区町村コードはその年のものなので、今の市区町村に入った昔の市区町村のコードも含める
@@ -83,3 +75,16 @@ WHERE use_category = '住宅地' AND city_code IN (
   SELECT DISTINCT city_code FROM codh.city.municipality WHERE current_city_code = ${lit(code)} AND city_code IS NOT NULL
 )
 GROUP BY year ORDER BY year`;
+
+// --- 今の市区町村の昔の数字 (社会・人口統計体系。1980 年から、今の区域に組み替えた値) ---
+export type Stat = { year: number; item: string; value: number };
+const ssds = (table: string, items: string[], code: string) => `
+  SELECT year, cat01 AS item, value FROM e_stat.ssds.${table}
+  WHERE area = ${lit(code)} AND cat01 IN (${items.map(lit).join(", ")}) AND value IS NOT NULL`;
+export const statsSql = (code: string) =>
+  [
+    ssds("a_municipal_population", ["A1101", "A1301", "A1302", "A1303"], code),
+    ssds("e_municipal_education", ["E2101", "E2501"], code),
+    ssds("f_municipal_labor", ["F1102", "F2201", "F2211", "F2221", "F2705"], code),
+    ssds("c_municipal_economy", ["C3401"], code),
+  ].join(" UNION ALL ") + " ORDER BY year";
