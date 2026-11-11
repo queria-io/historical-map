@@ -129,9 +129,9 @@ export const App = () => {
           >
             <div className="badge badge-old">
               <b>{era.label}</b>
-              <span>空中写真・当時の境界</span>
+              <span>空中写真・当時の行政区域</span>
             </div>
-            {missing && <div className="no-photo">この年代の空中写真は、この範囲にありません</div>}
+            {missing && <div className="no-photo">この範囲には、この年代の空中写真がありません</div>}
           </MapView>
           <MapView
             style={nowMap}
@@ -141,7 +141,7 @@ export const App = () => {
           >
             <div className="badge badge-now">
               <b>現在</b>
-              <span>{current.label}・今の境界</span>
+              <span>{current.label}・現在の行政区域</span>
             </div>
           </MapView>
         </div>

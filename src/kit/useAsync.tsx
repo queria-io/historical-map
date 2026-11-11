@@ -26,7 +26,7 @@ export const AsyncNote = ({ state, empty = false }: { state: Async<unknown>; emp
   state.status === "loading" ? (
     <p className="note">読み込み中…</p>
   ) : state.status === "error" ? (
-    <p className="note">読み込めませんでした（{String(state.error)}）。</p>
+    <p className="note">読み込みに失敗しました（{String(state.error)}）。</p>
   ) : empty ? (
-    <p className="note">値がありません。</p>
+    <p className="note">データがありません。</p>
   ) : null;

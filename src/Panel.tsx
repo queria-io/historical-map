@@ -60,20 +60,20 @@ export const Panel = ({ id, name, date, year: target }: { id: string; name: stri
     <>
       <h2>{city.full_name}</h2>
       <p className="meta">
-        {city.address.split("/")[0]}・{date.slice(0, 4)}年の境界
+        {city.address.split("/")[0]}・{date.slice(0, 4)}年時点の行政区域
       </p>
       <ShareButtons
-        text={`${city.full_name}（${period(city.valid_from, city.valid_to)}）と今の${mainName}を、空中写真と統計で比べる`}
+        text={`${city.full_name}（${period(city.valid_from, city.valid_to)}）と現在の${mainName}を、空中写真と統計で比較`}
         hashtag="まちの昔と今"
       />
       {main ? (
         <Compare city={city} registry={registry} now={nowOf(main.code)} share={main.share} currentShare={main.current_share} />
       ) : (
-        <p className="note">今の市区町村との対応がありません。</p>
+        <p className="note">現在の市区町村との対応関係がありません。</p>
       )}
       {others.length > 0 && (
         <p className="note">
-          ほかに {others.map((o) => `${shortName(nowOf(o.code)?.name) || o.code}（${pct(o.share)}）`).join("・")}に入っています。
+          ほかに {others.map((o) => `${shortName(nowOf(o.code)?.name) || o.code}（${pct(o.share)}）`).join("・")}にも含まれます。
         </p>
       )}
       <Chain before={before} steps={steps} />
@@ -95,7 +95,7 @@ type CompareProps = { city: City; registry?: Registry; now?: Now; share: number;
 
 const Compare = ({ city, registry, now, share, currentShare }: CompareProps) => {
   const thenDensity = registry && city.area_km2 ? registry.population / city.area_km2 : null;
-  const nowName = shortName(now?.name) || "今";
+  const nowName = shortName(now?.name) || "現在";
   const rows: [string, ReactNode, ReactNode][] = [
     ["期間", period(city.valid_from, city.valid_to), "現在"],
     ["面積", `${fmt(city.area_km2, 1)} km²`, `${fmt(now?.area_km2, 1)} km²`],
@@ -109,7 +109,7 @@ const Compare = ({ city, registry, now, share, currentShare }: CompareProps) => 
   ];
   return (
     <>
-      <h3>当時と今</h3>
+      <h3>当時と現在の比較</h3>
       <table className="compare">
         <thead>
           <tr>
@@ -129,8 +129,8 @@ const Compare = ({ city, registry, now, share, currentShare }: CompareProps) => 
         </tbody>
       </table>
       <p className="note">
-        当時の面積の {pct(share)} が今の{nowName}に入り、{nowName}の面積の {pct(currentShare)} にあたります。
-        {registry ? "当時の人口は住民基本台帳の最初の年（日本人住民）の値です。" : "1995 年より前に消えた市町村は、当時の人口がありません。"}
+        当時の面積の {pct(share)} が現在の{nowName}に含まれ、{nowName}の面積の {pct(currentShare)} を占めます。
+        {registry ? "当時の人口は住民基本台帳の最初の年（日本人住民）の値です。" : "1995 年より前に廃止された市町村は、当時の人口のデータがありません。"}
       </p>
     </>
   );
@@ -145,7 +145,7 @@ const Chain = ({ before, steps }: { before: Before[]; steps: Step[] }) => {
       {names.length > 0 && (
         <p className="chain-prev">
           {names.slice(0, 8).join("・")}
-          {names.length > 8 && ` ほか ${names.length - 8}`} から
+          {names.length > 8 && ` ほか ${names.length - 8}`} が前身
         </p>
       )}
       <ol className="chain">
@@ -155,7 +155,7 @@ const Chain = ({ before, steps }: { before: Before[]; steps: Step[] }) => {
             {s.with_names?.length ? (
               <>
                 <br />
-                <span className="meta">{s.with_names.join("・")}と合わさる</span>
+                <span className="meta">{s.with_names.join("・")}と合併</span>
               </>
             ) : null}
           </li>

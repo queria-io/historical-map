@@ -14,7 +14,7 @@ export const Then = ({ code, name, target }: { code: string; name: string; targe
   return (
     <section className="then-stats">
       <h3>
-        昔の数字<span className="meta">今の{name}の区域・{target}年に近い年</span>
+        過去の統計<span className="meta">現在の{name}の区域で集計・{target}年に最も近い年の値</span>
       </h3>
       {rows.length ? (
         rows.map((i) => <Row key={i.label} indicator={i} target={target} />)
@@ -40,7 +40,7 @@ const Row = ({ indicator: i, target }: { indicator: Indicator; target: number })
             <small>{then.year}年</small>
           </span>
           <Sparkline points={i.points} mark={then.year} />
-          <span className="now">{now.year !== then.year && <>今 {i.format(now.value)}</>}</span>
+          <span className="now">{now.year !== then.year && <>現在 {i.format(now.value)}</>}</span>
         </summary>
         <LineChart series={[{ label: i.label, points: i.points }]} />
       </details>
@@ -61,7 +61,7 @@ const Row = ({ indicator: i, target }: { indicator: Indicator; target: number })
         <span className="now">
           {now.year !== then.year && (
             <>
-              今<ShareBar parts={now.parts} labels={i.labels} />
+              現在<ShareBar parts={now.parts} labels={i.labels} />
             </>
           )}
         </span>

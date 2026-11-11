@@ -15,7 +15,7 @@ export const ShareButtons = ({ text, hashtag }: { text: string; hashtag: string 
         onClick={() =>
           navigator.clipboard.writeText(location.href).then(
             () => setCopied("コピーしました"),
-            () => setCopied("コピーできませんでした"),
+            () => setCopied("コピーに失敗しました"),
           )
         }
       >
