@@ -1,8 +1,8 @@
 # 過去の地図と統計（historical-map.queria.io）
 
-国土地理院の年代別空中写真（1945〜1990 年）に当時の市町村の境界を重ね、クリックした市町村の統計を表示する地図です。データは Queria の公開データセットから作ります。
+国土地理院の年代別空中写真（1945〜1990 年）に当時の市町村の境界を重ね、クリックした市町村の統計を表示する地図です。左に当時の写真、右に今の地理院地図を並べ、2 つの地図の位置を連動させます（1 画面にも切り替えられます）。データは Queria の公開データセットから作ります。
 
-- 背景: [地理院タイル](https://maps.gsi.go.jp/development/ichiran.html)の年代別空中写真と淡色地図。ブラウザからリアルタイムに読み込みます
+- 背景: [地理院タイル](https://maps.gsi.go.jp/development/ichiran.html)の年代別空中写真と、今の地図（標準地図・淡色地図・最新の写真）。ブラウザからリアルタイムに読み込みます
 - 当時の境界: `codh` データセットの `city.boundary` を PMTiles にしたもの（dataset-codh の `scripts/build-tiles.sh`、assets.queria.io に置く）
 - 統計: `codh` と `e_stat` から `scripts/build_data.py` が都道府県ごとの JSON（`public/data/`）を作ります
 
@@ -18,7 +18,7 @@
 ```bash
 pnpm install
 pnpm build:data        # public/data/*.json を作る（uv が要ります）
-pnpm dev
+pnpm dev               # ?era=1961&screens=2&now=std で年代・画面数・右の地図を指定できます
 pnpm run deploy        # ビルドして Cloudflare Workers に出す
 ```
 

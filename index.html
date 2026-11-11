@@ -4,18 +4,47 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>過去の地図と統計 | Queria</title>
-    <meta name="description" content="国土地理院の年代別空中写真に当時の市町村の境界を重ね、クリックした市町村の統計を表示します。" />
+    <meta name="description" content="国土地理院の年代別空中写真に当時の市町村の境界を重ね、今の地図と並べて、クリックした市町村の統計を表示します。" />
   </head>
   <body>
-    <header>
+    <nav id="controls">
       <h1>過去の地図と統計</h1>
-      <label>年代 <select id="era"></select></label>
-      <label>写真の濃さ <input id="opacity" type="range" min="0" max="1" step="0.05" value="1" /></label>
-      <span class="hint">写真の無い地域があります。市町村をクリックすると統計を表示します</span>
+      <fieldset class="row">
+        <legend>画面</legend>
+        <label><input type="radio" name="screens" value="1" /> 1画面</label>
+        <label><input type="radio" name="screens" value="2" checked /> 2画面</label>
+      </fieldset>
+      <label class="check"><input id="boundary" type="checkbox" checked /> 当時の境界線</label>
+      <label class="field">写真の不透明度
+        <select id="opacity">
+          <option value="1">100%</option>
+          <option value="0.8">80%</option>
+          <option value="0.6">60%</option>
+          <option value="0.4">40%</option>
+          <option value="0.2">20%</option>
+          <option value="0">0%</option>
+        </select>
+      </label>
+      <label class="field" id="current-field">右の地図
+        <select id="current"></select>
+      </label>
+      <fieldset class="eras">
+        <legend>年代
+          <span class="step">
+            <button id="prev" type="button" title="前の年代">▲</button>
+            <button id="next" type="button" title="次の年代">▼</button>
+          </span>
+        </legend>
+        <div id="eras"></div>
+      </fieldset>
+      <p class="hint">写真の無い地域があります。市町村をクリックすると統計を表示します。</p>
       <a class="brand" href="https://queria.io/" target="_blank" rel="noopener">Queria</a>
-    </header>
+    </nav>
     <main>
-      <div id="map"></div>
+      <div id="maps">
+        <div id="map"></div>
+        <div id="map-now"></div>
+      </div>
       <aside id="panel" hidden></aside>
     </main>
     <script type="module" src="/src/main.ts"></script>
