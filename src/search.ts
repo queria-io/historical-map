@@ -51,7 +51,7 @@ export const search = async (q: string, date: string): Promise<Hit[]> => {
   const [a, b] = await Promise.allSettled([
     // どの年代の境界にも無い市町村 (1950年より前に消えたものなど) は、選んでも地図に出せないので除く
     cities(q, date).then((hits) => hits.filter((h) => ERAS.some((e) => existsAt(h, e.boundaryDate)))),
-    geocode(q).then((places) => places.map((p): Hit => ({ ...p, note: "今の住所" }))),
+    geocode(q).then((places) => places.map((p): Hit => ({ ...p, note: "現在の住所" }))),
   ]);
   return [a, b].flatMap((r) => (r.status === "fulfilled" ? r.value : []));
 };

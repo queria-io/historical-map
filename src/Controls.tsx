@@ -40,13 +40,13 @@ export const Controls = ({ settings: s, set, search, onPick, onAbout }: Props) =
       </fieldset>
       <label className="check">
         <input type="checkbox" checked={s.boundary} onChange={(e) => set({ boundary: e.target.checked })} /> <i className="key-old" />
-        当時の境界線
+        当時の行政区域の境界
       </label>
       {two && (
         <label className="check">
           <input type="checkbox" checked={s.nowBoundary} onChange={(e) => set({ nowBoundary: e.target.checked })} />{" "}
           <i className="key-now" />
-          今の境界線（右）
+          現在の行政区域の境界（右）
         </label>
       )}
       <label className="field">
@@ -85,7 +85,7 @@ export const Controls = ({ settings: s, set, search, onPick, onAbout }: Props) =
         ))}
       </fieldset>
       <p className="hint">
-        写真の無い地域があります。右の地図では今と当時の境界を重ねて表示します。どちらかの地図で当時の市町村をクリックすると統計を表示し、右の地図にその形を太い破線で示します。
+        空中写真が無い地域があります。右の地図には現在と当時の行政区域の境界を重ねて表示します。どちらかの地図で当時の市町村をクリックすると統計を表示し、右の地図にその区域を太い破線で示します。
       </p>
       <button className="about-link" type="button" onClick={onAbout}>このサイトについて</button>
       <PoweredBy />

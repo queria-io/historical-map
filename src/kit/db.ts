@@ -97,7 +97,9 @@ export const createQueria = (datasets: readonly string[]) => {
 
   /** SQL を実行して行をオブジェクトの配列で返す */
   const query = async <T,>(sql: string): Promise<T[]> => {
-    await preload(datasets.filter((name) => new RegExp(`\\b${name}\\.`).test(sql)));
+    // 文字列リテラルの中 (検索語など) に出てきた名前では ATTACH しない
+    const code = sql.replace(/'(?:[^']|'')*'/g, "''");
+    await preload(datasets.filter((name) => new RegExp(`\\b${name}\\.`).test(code)));
     const conn = await (await getDB()).connect();
     try {
       const started = performance.now();
