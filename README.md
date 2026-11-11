@@ -19,8 +19,10 @@
 pnpm install
 pnpm build:data        # public/data/*.json を作る（uv が要ります）
 pnpm dev               # ?era=1961&screens=2&now=std で年代・画面数・右の地図を指定できます
-pnpm run deploy        # ビルドして Cloudflare Workers に出す
+pnpm run deploy        # 手元からビルドして Cloudflare Workers にデプロイする
 ```
+
+main にマージすると、Cloudflare の Workers Builds が `pnpm run build` と `npx wrangler deploy` を実行して historical-map.queria.io にデプロイします。
 
 境界タイルの URL は `.env` の `VITE_BOUNDARY_TILES` です。
 

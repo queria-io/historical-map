@@ -4,6 +4,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
 import { boundaryLayer, CURRENT_MAPS, type Era, ERAS, PALE_TILES, PHOTO_MAXZOOM, PHOTO_MINZOOM } from "./eras";
 import { renderPanel } from "./panel";
+import logo from "./queria-logo.svg?raw";
 
 /** 当時の市区町村の境界 (dataset-codh の scripts/build-tiles.sh) */
 const BOUNDARY_TILES = import.meta.env.VITE_BOUNDARY_TILES as string;
@@ -159,6 +160,7 @@ const resize = () => {
 };
 
 // 操作パネル
+$<HTMLElement>("#logo").innerHTML = logo;
 const erasEl = $<HTMLElement>("#eras");
 erasEl.innerHTML = ERAS.map(
   (e) => `<label><input type="radio" name="era" value="${e.id}" /> ${e.label}</label>`,

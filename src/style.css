@@ -29,7 +29,11 @@ body { display: flex; }
 .step { display: inline-flex; gap: 2px; }
 .step button { font-size: 10px; line-height: 1; padding: 3px 5px; cursor: pointer; }
 #controls .hint { font-size: 12px; color: var(--muted); margin: 0; }
-#controls .brand { margin-top: auto; font-size: 12px; color: var(--muted); }
+#controls .powered { margin-top: auto; display: flex; flex-direction: column; gap: 4px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; color: var(--fg); text-decoration: none; font-size: 11px; }
+#controls .powered:hover { border-color: #7846be; }
+#controls .powered > span:first-child { color: var(--muted); }
+#logo svg { display: block; width: 120px; }
+#controls .powered small { color: var(--muted); line-height: 1.4; }
 main { flex: 1; display: flex; min-width: 0; }
 #maps { flex: 1; display: flex; min-width: 0; }
 #map, #map-now { flex: 1; position: relative; }

@@ -82,5 +82,8 @@ export async function renderPanel(el: HTMLElement, picked: Picked): Promise<void
     ${picked.code ? registryBlock(data.registry[picked.code]) : ""}
     ${currents.map((c) => currentBlock(c.entry, c.share)).join("")}
     ${links.length === 0 ? `<p class="note">今の市区町村との対応がありません。</p>` : ""}
-    <p class="source"><a href="https://geoshape.ex.nii.ac.jp/city/resource/${esc(picked.id)}.html" target="_blank" rel="noopener">CODH の市区町村のページ</a></p>`;
+    <p class="source">
+      データ: Queria の <a href="https://queria.io/datasets/queria/codh" target="_blank" rel="noopener">codh</a>・<a href="https://queria.io/datasets/queria/e_stat" target="_blank" rel="noopener">e_stat</a> データセット（SQL で元のテーブルを確認できます）<br />
+      <a href="https://geoshape.ex.nii.ac.jp/city/resource/${esc(picked.id)}.html" target="_blank" rel="noopener">CODH の市区町村のページ</a>
+    </p>`;
 }
