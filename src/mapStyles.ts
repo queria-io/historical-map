@@ -90,8 +90,8 @@ export const nowStyle = (v: View): StyleSpecification => {
       boundary: { type: "vector", url: `pmtiles://${BOUNDARY_TILES}` },
     },
     layers: [
-      // 写真の不透明度は左右の写真にそろえて掛け、下に淡色地図を透かす
-      { id: "pale", type: "raster", source: "pale" },
+      // 写真の不透明度は左右の写真にそろえて掛け、下に淡色地図を透かす。透けないときは淡色地図を読まない
+      { id: "pale", type: "raster", source: "pale", layout: { visibility: c.id === "photo" && v.opacity < 1 ? "visible" : "none" } },
       { id: "now", type: "raster", source: "now", paint: { "raster-opacity": c.id === "photo" ? v.opacity : 1 } },
       { id: "now-casing", type: "line", source: "city", "source-layer": "city", layout: { visibility }, paint: { "line-color": "#ffffff", "line-opacity": 0.8, "line-width": lineWidth(2, 4.5) } },
       { id: "now-line", type: "line", source: "city", "source-layer": "city", layout: { visibility }, paint: { "line-color": "#7846be", "line-width": lineWidth(0.8, 2) } },

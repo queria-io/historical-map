@@ -84,14 +84,11 @@ a { color: var(--c0); }
   .controls:not(.open) .more { display: none; }
   .controls .eras { display: none; }
   .controls .about-link { margin-top: 0; }
-  .maps { flex-direction: column; }
+  .maps { flex-direction: column; min-height: 30vh; }
   .map + .map { border-left: 0; border-top: 2px solid var(--line); }
   main { flex-direction: column; }
   .panel { width: auto; max-height: 40vh; border-left: 0; border-top: 1px solid var(--line); }
 }
-.key-old, .key-now { display: inline-block; width: 16px; height: 0; margin-right: 2px; }
-.key-old { border-top: 2px dashed #d97706; }
-.key-now { border-top: 2px solid #7846be; }
 .compare { width: 100%; border-collapse: collapse; font-size: 12px; margin: 4px 0; }
 .compare th, .compare td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .compare thead th { font-weight: 600; }

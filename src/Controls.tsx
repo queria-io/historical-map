@@ -90,7 +90,7 @@ export const Controls = ({ settings: s, set, search, onPick, onAbout }: Props) =
           ))}
         </fieldset>
         <p className="hint">
-          空中写真が無い地域があります。地図で当時の市町村をクリックすると統計を表示し、現在の地図にその区域を太い破線で示します。現在の地図の紫の線は現在の行政区域の境界です。
+          空中写真が無い地域があります。地図で当時の市町村をクリックすると統計を表示し、現在の地図にその区域を太い破線で示します。現在の地図には、現在の行政区域の境界を紫の線で、当時の行政区域の境界を橙の破線で重ねます。
         </p>
         <button className="about-link" type="button" onClick={onAbout}>このサイトについて</button>
         <PoweredBy />
