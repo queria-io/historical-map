@@ -34,7 +34,7 @@ React と MapLibre で書いています。ほかの地図のアプリでも使�
 
 ```bash
 pnpm install
-pnpm dev               # ?era=1961&screens=2&now=std で年代・画面数・右の地図を指定できます
+pnpm dev               # ?era=1961&screens=2&now=std で年代・画面数・現在の地図（photo・std）を指定できます
 pnpm run deploy        # 手元からビルドして Cloudflare Workers にデプロイする
 ```
 

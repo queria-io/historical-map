@@ -7,7 +7,6 @@ export type View = {
   current: (typeof CURRENT_MAPS)[number];
   opacity: number;
   boundary: boolean;
-  nowBoundary: boolean;
   /** 選んだ当時の市町村 (geoshape_city_id) */
   picked?: string;
 };
@@ -80,17 +79,20 @@ const MLIT =
 const lineWidth = (a: number, b: number) => ["interpolate", ["linear"], ["zoom"], 6, a, 12, b] as ["interpolate", ["linear"], ["zoom"], number, number, number, number];
 export const nowStyle = (v: View): StyleSpecification => {
   const { era, current: c } = v;
-  const visibility = v.nowBoundary ? "visible" : "none";
+  const visibility = v.boundary ? "visible" : "none";
   return {
     version: 8,
     sources: {
+      pale: { type: "raster", tiles: [PALE_TILES], tileSize: 256, maxzoom: 18 },
       now: { type: "raster", tiles: [c.tiles], tileSize: 256, maxzoom: c.maxzoom, attribution: GSI },
       // 市区町村のレイヤーはズーム 12 まで。それより寄ったら 12 のタイルを拡大して使う
       city: { type: "vector", url: `pmtiles://${NOW_BOUNDARY_TILES}`, maxzoom: 12, attribution: MLIT },
       boundary: { type: "vector", url: `pmtiles://${BOUNDARY_TILES}` },
     },
     layers: [
-      { id: "now", type: "raster", source: "now" },
+      // 写真の不透明度は左右の写真にそろえて掛け、下に淡色地図を透かす
+      { id: "pale", type: "raster", source: "pale" },
+      { id: "now", type: "raster", source: "now", paint: { "raster-opacity": c.id === "photo" ? v.opacity : 1 } },
       { id: "now-casing", type: "line", source: "city", "source-layer": "city", layout: { visibility }, paint: { "line-color": "#ffffff", "line-opacity": 0.8, "line-width": lineWidth(2, 4.5) } },
       { id: "now-line", type: "line", source: "city", "source-layer": "city", layout: { visibility }, paint: { "line-color": "#7846be", "line-width": lineWidth(0.8, 2) } },
       // クリックで当時の市町村を選ぶための見えない塗り
@@ -100,7 +102,7 @@ export const nowStyle = (v: View): StyleSpecification => {
         type: "line",
         source: "boundary",
         "source-layer": boundaryLayer(era),
-        layout: { visibility: v.boundary ? "visible" : "none" },
+        layout: { visibility },
         paint: { "line-color": "#d97706", "line-width": lineWidth(0.8, 1.8), "line-dasharray": [3, 2] },
       },
       {
