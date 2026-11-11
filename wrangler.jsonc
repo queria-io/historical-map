@@ -1,0 +1,7 @@
+{
+  // historical-map.queria.io。dist/ の静的アセットだけを配る (Worker のコードは無い)
+  "name": "historical-map",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "./dist", "not_found_handling": "single-page-application" },
+  "routes": [{ "pattern": "historical-map.queria.io", "custom_domain": true }]
+}

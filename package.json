@@ -1,0 +1,20 @@
+{
+  "name": "historical-map",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:data": "uv run --with 'duckdb>=1.4,<2' python scripts/build_data.py",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "maplibre-gl": "^5.24.0",
+    "pmtiles": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/geojson": "^7946.0.16",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.6"
+  }
+}

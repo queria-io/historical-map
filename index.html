@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>過去の地図と統計 | Queria</title>
+    <meta name="description" content="国土地理院の年代別空中写真に当時の市町村の境界を重ね、クリックした市町村の統計を表示します。" />
+  </head>
+  <body>
+    <header>
+      <h1>過去の地図と統計</h1>
+      <label>年代 <select id="era"></select></label>
+      <label>写真の濃さ <input id="opacity" type="range" min="0" max="1" step="0.05" value="1" /></label>
+      <a class="brand" href="https://queria.io/" target="_blank" rel="noopener">Queria</a>
+    </header>
+    <main>
+      <div id="map"></div>
+      <aside id="panel" hidden></aside>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
