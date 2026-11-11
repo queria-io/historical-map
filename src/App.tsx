@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { About } from "./About";
 import { Controls, type Settings } from "./Controls";
 import { boundaryLayer, CURRENT_MAPS, ERAS, PHOTO_MAXZOOM, PHOTO_MINZOOM } from "./eras";
+import { CollapsedAttribution } from "./kit/attribution";
 import { featureBounds, focusFeature } from "./kit/bounds";
 import { MapView } from "./kit/MapView";
 import { photoCoverage } from "./kit/photoTiles";
@@ -19,7 +20,8 @@ const params = new URLSearchParams(location.search);
 const initial: Settings = {
   era: ERAS.find((e) => e.id === params.get("era")) ?? ERAS[1],
   screens: params.get("screens") === "1" ? 1 : 2,
-  current: CURRENT_MAPS.find((c) => c.id === params.get("now")) ?? CURRENT_MAPS[0],
+  // 以前の ?now=pale (淡色地図) は、選択肢に残した地図のうち近い標準地図で開く
+  current: CURRENT_MAPS.find((c) => c.id === (params.get("now") === "pale" ? "std" : params.get("now"))) ?? CURRENT_MAPS[0],
   opacity: 1,
   boundary: true,
 };
@@ -86,8 +88,7 @@ export const App = () => {
   const clickable = (layer: string, onMap: (m: maplibregl.Map) => void, nav?: Nav) => (m: maplibregl.Map) => {
     onMap(m);
     m.addControl(new maplibregl.NavigationControl(nav), "top-right");
-    // 出典は (i) を押したときだけ広げる。MapLibre は最初に広げて表示する
-    m.once("load", () => m.getContainer().querySelector(".maplibregl-compact-show")?.classList.remove("maplibregl-compact-show"));
+    m.addControl(new CollapsedAttribution(), "bottom-right");
     m.on("mousemove", layer, () => (m.getCanvas().style.cursor = "pointer"));
     m.on("mouseleave", layer, () => (m.getCanvas().style.cursor = ""));
     m.on("click", layer, (e) => {
@@ -125,7 +126,7 @@ export const App = () => {
         <div className="maps">
           <MapView
             style={oldMap}
-            options={{ center: [139.6, 35.7], zoom: 10, hash: true, attributionControl: { compact: true } }}
+            options={{ center: [139.6, 35.7], zoom: 10, hash: true, attributionControl: false }}
             onReady={clickable("city-fill", setLeft)}
           >
             <div className="badge badge-old">
@@ -136,7 +137,7 @@ export const App = () => {
           </MapView>
           <MapView
             style={nowMap}
-            options={{ center: [139.6, 35.7], zoom: 10, attributionControl: { compact: true } }}
+            options={{ center: [139.6, 35.7], zoom: 10, attributionControl: false }}
             onReady={clickable("old-fill", setRight, { showCompass: false })}
             hidden={screens === 1}
           >

@@ -1,4 +1,4 @@
-// 左の操作パネル。狭い画面では検索と年代だけを出し、ほかの設定は「設定」で開く
+// 左の操作パネル。年代は ◀ 一覧 ▶ で選ぶ。狭い画面では検索と年代だけを出し、ほかの設定は「設定」で開く
 import { useState } from "react";
 import { CURRENT_MAPS, type Era, ERAS } from "./eras";
 import { PlaceSearch } from "./kit/PlaceSearch";
@@ -32,7 +32,7 @@ export const Controls = ({ settings: s, set, search, onPick, onAbout }: Props) =
     <nav className={open ? "controls open" : "controls"}>
       <h1>まちの昔と今</h1>
       <PlaceSearch search={search} onPick={onPick} placeholder="地名・住所で検索（例: 田無町）" />
-      <div className="compact">
+      <div className="era-picker">
         <button type="button" disabled={index === 0} onClick={() => step(-1)} aria-label="前の年代">◀</button>
         <select value={s.era.id} onChange={(e) => set({ era: ERAS.find((x) => x.id === e.target.value) ?? s.era })} aria-label="年代">
           {ERAS.map((e) => (
@@ -75,20 +75,6 @@ export const Controls = ({ settings: s, set, search, onPick, onAbout }: Props) =
             </select>
           </label>
         )}
-        <fieldset className="eras">
-          <legend>
-            年代
-            <span className="step">
-              <button type="button" title="前の年代" disabled={index === 0} onClick={() => step(-1)}>▲</button>
-              <button type="button" title="次の年代" disabled={index === ERAS.length - 1} onClick={() => step(1)}>▼</button>
-            </span>
-          </legend>
-          {ERAS.map((e) => (
-            <label key={e.id}>
-              <input type="radio" name="era" checked={e === s.era} onChange={() => set({ era: e })} /> {e.label}
-            </label>
-          ))}
-        </fieldset>
         <p className="hint">
           空中写真が無い地域があります。地図で当時の市町村をクリックすると統計を表示し、現在の地図にその区域を太い破線で示します。現在の地図には、現在の行政区域の境界を紫の線で、当時の行政区域の境界を橙の破線で重ねます。
         </p>

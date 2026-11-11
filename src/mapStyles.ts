@@ -27,7 +27,8 @@ export const oldStyle = (v: View): StyleSpecification => {
   return {
     version: 8,
     sources: {
-      pale: { type: "raster", tiles: [PALE_TILES], tileSize: 256, maxzoom: 18, attribution: GSI },
+      // 出典は写真のソースに国土地理院とまとめて書く
+      pale: { type: "raster", tiles: [PALE_TILES], tileSize: 256, maxzoom: 18 },
       photo: {
         type: "raster",
         tiles: [era.tiles],

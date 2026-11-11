@@ -21,10 +21,6 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); }
 .controls label { display: flex; align-items: center; gap: 4px; }
 .controls .field { flex-direction: column; align-items: stretch; gap: 2px; font-size: 12px; color: var(--muted); }
 .controls select { font: inherit; color: var(--fg); padding: 2px; }
-.eras { display: flex; flex-direction: column; gap: 2px; }
-.eras label { padding: 2px 0; }
-.step { display: inline-flex; gap: 2px; }
-.step button { font-size: 10px; line-height: 1; padding: 3px 5px; cursor: pointer; }
 .controls .search { position: relative; }
 .controls .search input { width: 100%; box-sizing: border-box; font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; }
 .hits { list-style: none; margin: 4px 0 0; padding: 0; border: 1px solid var(--line); border-radius: 4px; max-height: 50vh; overflow-y: auto; }
@@ -35,10 +31,11 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); }
 .hits li.empty { cursor: default; color: var(--muted); }
 .controls .hint { font-size: 12px; color: var(--muted); margin: 0; }
 .controls .more { display: flex; flex-direction: column; gap: 10px; flex: 1; }
-.controls .compact { display: none; gap: 4px; align-items: center; }
-.controls .compact select { flex: 1; min-width: 0; font-size: 16px; padding: 4px; }
-.controls .compact button { font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--fg); }
-.controls .compact .toggle[aria-expanded="true"] { background: #f3f4f6; }
+.controls .era-picker { display: flex; gap: 4px; align-items: center; }
+.controls .era-picker .toggle { display: none; }
+.controls .era-picker select { flex: 1; min-width: 0; font: inherit; padding: 4px; }
+.controls .era-picker button { font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--fg); }
+.controls .era-picker .toggle[aria-expanded="true"] { background: #f3f4f6; }
 .controls .about-link { margin-top: auto; align-self: flex-start; background: none; border: 0; padding: 0; font: inherit; font-size: 12px; color: var(--muted); text-decoration: underline; cursor: pointer; }
 .about { max-width: 520px; border: 1px solid var(--line); border-radius: 8px; padding: 20px 24px; font-size: 14px; line-height: 1.8; }
 .about::backdrop { background: rgb(0 0 0 / 0.4); }
@@ -80,9 +77,9 @@ a { color: var(--c0); }
   .controls { width: auto; max-height: 60vh; padding: 8px 12px; gap: 6px; border-right: 0; border-bottom: 1px solid var(--line); }
   .controls h1 { display: none; }
   .controls .search input { font-size: 16px; padding: 6px 8px; }
-  .controls .compact { display: flex; }
+  .controls .era-picker .toggle { display: block; }
+  .controls .era-picker select { font-size: 16px; }
   .controls:not(.open) .more { display: none; }
-  .controls .eras { display: none; }
   .controls .about-link { margin-top: 0; }
   .maps { flex-direction: column; min-height: 30vh; }
   .map + .map { border-left: 0; border-top: 2px solid var(--line); }
@@ -139,3 +136,8 @@ svg text.in { fill: #fff; font-weight: 600; }
   .badge b { font-size: 12px; }
   .no-photo { top: auto; bottom: 8px; font-size: 11px; }
 }
+.attribution { font-size: 10px; background: rgb(255 255 255 / 0.85); border-radius: 12px; max-width: calc(100% - 20px); }
+.attribution summary { list-style: none; cursor: pointer; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font: italic 700 12px/1 serif; background: #fff; float: right; }
+.attribution summary::-webkit-details-marker { display: none; }
+.attribution[open] { padding: 2px 4px 2px 8px; }
+.attribution div { padding: 2px 24px 2px 0; line-height: 1.5; }
