@@ -93,7 +93,8 @@ export const App = () => {
       const props = e.features?.[0]?.properties;
       const id: unknown = props?.id;
       const name: unknown = props?.name;
-      if (typeof id === "string") setPicked({ id, name: typeof name === "string" ? name : id });
+      // 選んでいる市町村の中のクリック (ダブルクリックのズームなど) では寄せ直さない
+      if (typeof id === "string") setPicked((p) => (p?.id === id ? p : { id, name: typeof name === "string" ? name : id }));
     });
   };
 
@@ -146,7 +147,7 @@ export const App = () => {
         </div>
         {picked && (
           <aside className="panel">
-            <Panel key={picked.id} id={picked.id} name={picked.name} date={era.boundaryDate} />
+            <Panel key={picked.id} id={picked.id} name={picked.name} date={era.boundaryDate} year={era.year} />
           </aside>
         )}
       </main>

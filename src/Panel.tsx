@@ -42,7 +42,7 @@ const load = async (id: string): Promise<Data> => {
   return { city, steps, before, nows, registry: registry[0] };
 };
 
-export const Panel = ({ id, name, date }: { id: string; name: string; date: string }) => {
+export const Panel = ({ id, name, date, year: target }: { id: string; name: string; date: string; year: number }) => {
   const state = useAsync(() => load(id), [id]);
   if (state.status !== "done")
     return (
@@ -77,7 +77,7 @@ export const Panel = ({ id, name, date }: { id: string; name: string; date: stri
         </p>
       )}
       <Chain before={before} steps={steps} />
-      {main && <Then code={main.code} name={mainName} target={Number(date.slice(0, 4))} />}
+      {main && <Then code={main.code} name={mainName} target={target} />}
       <p className="source">
         データ: Queria の <a href="https://queria.io/datasets/queria/codh" target="_blank" rel="noopener">codh</a>・
         <a href="https://queria.io/datasets/queria/e_stat" target="_blank" rel="noopener">e_stat</a>・

@@ -5,22 +5,21 @@ import { type Indicator, indicators, nearest } from "./indicators";
 import { query } from "./queria";
 import { type LandPrice, landPriceSql, type Stat, statsSql } from "./sql";
 
-const load = (code: string) =>
-  Promise.all([query<Stat>(statsSql(code)), query<LandPrice>(landPriceSql(code)).catch(() => [])]).then(
-    ([stats, prices]) => indicators(stats, prices),
-  );
-
 export const Then = ({ code, name, target }: { code: string; name: string; target: number }) => {
-  const state = useAsync(() => load(code), [code]);
+  // 地価は別のデータセットを読むので、統計の行を待たせずに読めた時点で足す。読めなければ地価の行だけを出さない
+  const stats = useAsync(() => query<Stat>(statsSql(code)), [code]);
+  const land = useAsync(() => query<LandPrice>(landPriceSql(code)), [code]);
+  const rows =
+    stats.status === "done" ? indicators(stats.value, land.status === "done" ? land.value : []) : [];
   return (
     <section className="then-stats">
       <h3>
         昔の数字<span className="meta">今の{name}の区域・{target}年に近い年</span>
       </h3>
-      {state.status === "done" && state.value.length ? (
-        state.value.map((i) => <Row key={i.label} indicator={i} target={target} />)
+      {rows.length ? (
+        rows.map((i) => <Row key={i.label} indicator={i} target={target} />)
       ) : (
-        <AsyncNote state={state} empty />
+        <AsyncNote state={stats} empty />
       )}
     </section>
   );
