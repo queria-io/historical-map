@@ -16,67 +16,7 @@
     <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
-    <nav id="controls">
-      <h1>まちの昔と今</h1>
-      <div class="search">
-        <input id="q" type="search" placeholder="地名・住所で検索（例: 田無町）" autocomplete="off" />
-        <ul id="hits" hidden></ul>
-      </div>
-      <fieldset class="row">
-        <legend>画面</legend>
-        <label><input type="radio" name="screens" value="1" /> 1画面</label>
-        <label><input type="radio" name="screens" value="2" checked /> 2画面</label>
-      </fieldset>
-      <label class="check"><input id="boundary" type="checkbox" checked /> <i class="key-old"></i>当時の境界線</label>
-      <label class="check" id="now-boundary-field"><input id="now-boundary" type="checkbox" checked /> <i class="key-now"></i>今の境界線（右）</label>
-      <label class="field">写真の不透明度
-        <select id="opacity">
-          <option value="1">100%</option>
-          <option value="0.8">80%</option>
-          <option value="0.6">60%</option>
-          <option value="0.4">40%</option>
-          <option value="0.2">20%</option>
-          <option value="0">0%</option>
-        </select>
-      </label>
-      <label class="field" id="current-field">右の地図
-        <select id="current"></select>
-      </label>
-      <fieldset class="eras">
-        <legend>年代
-          <span class="step">
-            <button id="prev" type="button" title="前の年代">▲</button>
-            <button id="next" type="button" title="次の年代">▼</button>
-          </span>
-        </legend>
-        <div id="eras"></div>
-      </fieldset>
-      <p class="hint">写真の無い地域があります。右の地図では今と当時の境界を重ねて表示します。どちらかの地図で当時の市町村をクリックすると統計を表示し、右の地図にその形を太い破線で示します。</p>
-      <button id="about-open" class="about-link" type="button">このサイトについて</button>
-      <a class="powered" href="https://queria.io/" target="_blank" rel="noopener">
-        Powered by <span id="logo" role="img" aria-label="Queria"></span>
-      </a>
-    </nav>
-    <main>
-      <div id="maps">
-        <div id="map"></div>
-        <div id="map-now"></div>
-      </div>
-      <aside id="panel" hidden></aside>
-    </main>
-    <dialog id="about">
-      <h2>このサイトについて</h2>
-      <p>
-        このサイトは、谷謙二氏の<a href="https://ktgis.net/kjmapw/" target="_blank" rel="noopener">「今昔マップ on the web」</a>に着想を得て作りました。今昔マップでは、昔の地形図と今の地図を並べて、町の移り変わりを見比べられます。
-      </p>
-      <p>
-        地図で見える変化を、数字でも確認できるようにしたいと考えました。<a href="https://queria.io/" target="_blank" rel="noopener">Queria</a> には、当時の市町村の境界（CODH の歴史的行政区域データセット）と、国勢調査などの統計（e-Stat）が SQL で読める形で載っています。この 2 つを組み合わせると、当時の町が今のどの市区町村に入ったか、そこに今どれだけの人が住んでいるかを数字で確認できます。
-      </p>
-      <p>
-        市町村をクリックすると、ブラウザから Queria のデータセットに SQL を実行して、その場で表とグラフを作ります。空中写真と地図は国土地理院の地理院タイルを使っています。
-      </p>
-      <form method="dialog"><button>閉じる</button></form>
-    </dialog>
-    <script type="module" src="/src/main.ts"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
