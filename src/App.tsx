@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { About } from "./About";
 import { Controls, type Settings } from "./Controls";
 import { boundaryLayer, CURRENT_MAPS, ERAS, PHOTO_MAXZOOM, PHOTO_MINZOOM } from "./eras";
+import { CollapsedAttribution } from "./kit/attribution";
 import { featureBounds, focusFeature } from "./kit/bounds";
 import { MapView } from "./kit/MapView";
 import { photoCoverage } from "./kit/photoTiles";
@@ -19,10 +20,10 @@ const params = new URLSearchParams(location.search);
 const initial: Settings = {
   era: ERAS.find((e) => e.id === params.get("era")) ?? ERAS[1],
   screens: params.get("screens") === "1" ? 1 : 2,
-  current: CURRENT_MAPS.find((c) => c.id === params.get("now")) ?? CURRENT_MAPS[0],
+  // 以前の ?now=pale (淡色地図) は、選択肢に残した地図のうち近い標準地図で開く
+  current: CURRENT_MAPS.find((c) => c.id === (params.get("now") === "pale" ? "std" : params.get("now"))) ?? CURRENT_MAPS[0],
   opacity: 1,
   boundary: true,
-  nowBoundary: true,
 };
 const shared = params.get("city");
 
@@ -47,7 +48,7 @@ export const App = () => {
   const [about, setAbout] = useState(false);
   const [left, setLeft] = useState<maplibregl.Map | null>(null);
   const [right, setRight] = useState<maplibregl.Map | null>(null);
-  const { era, screens, current, opacity, boundary, nowBoundary } = settings;
+  const { era, screens, current, opacity, boundary } = settings;
 
   // 年代を変えると、選んでいた市町村はその年代の境界に無いことがあるので外す
   const set = useCallback((patch: Partial<Settings>) => {
@@ -55,9 +56,9 @@ export const App = () => {
     if (patch.era) setPicked(undefined);
   }, []);
 
-  const view = { era, current, opacity, boundary, nowBoundary, picked: picked?.id };
+  const view = { era, current, opacity, boundary, picked: picked?.id };
   const oldMap = useMemo(() => oldStyle(view), [era, opacity, boundary, picked?.id]);
-  const nowMap = useMemo(() => nowStyle(view), [era, current, boundary, nowBoundary, picked?.id]);
+  const nowMap = useMemo(() => nowStyle(view), [era, current, opacity, boundary, picked?.id]);
 
   // URL に年代・画面・選んだ市町村を書く (位置は地図が #ズーム/緯度/経度 で書く)
   useEffect(() => {
@@ -87,6 +88,7 @@ export const App = () => {
   const clickable = (layer: string, onMap: (m: maplibregl.Map) => void, nav?: Nav) => (m: maplibregl.Map) => {
     onMap(m);
     m.addControl(new maplibregl.NavigationControl(nav), "top-right");
+    m.addControl(new CollapsedAttribution(), "bottom-right");
     m.on("mousemove", layer, () => (m.getCanvas().style.cursor = "pointer"));
     m.on("mouseleave", layer, () => (m.getCanvas().style.cursor = ""));
     m.on("click", layer, (e) => {
@@ -124,7 +126,7 @@ export const App = () => {
         <div className="maps">
           <MapView
             style={oldMap}
-            options={{ center: [139.6, 35.7], zoom: 10, hash: true }}
+            options={{ center: [139.6, 35.7], zoom: 10, hash: true, attributionControl: false }}
             onReady={clickable("city-fill", setLeft)}
           >
             <div className="badge badge-old">
@@ -135,7 +137,7 @@ export const App = () => {
           </MapView>
           <MapView
             style={nowMap}
-            options={{ center: [139.6, 35.7], zoom: 10 }}
+            options={{ center: [139.6, 35.7], zoom: 10, attributionControl: false }}
             onReady={clickable("old-fill", setRight, { showCompass: false })}
             hidden={screens === 1}
           >
