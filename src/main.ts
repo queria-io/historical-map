@@ -193,12 +193,44 @@ const setPicked = (id: string | undefined) => {
   if (now.getLayer("picked-line")) now.setFilter("picked-line", ["==", ["get", "id"], id ?? ""]);
 };
 
+// 読み込み済みのタイルにある、その市町村の形の範囲。タイルの境で切れているので全部を合わせる
+type Coords = number | Coords[];
+const isPoint = (c: Coords[]): c is [number, number] => typeof c[0] === "number";
+const extend = (b: maplibregl.LngLatBounds, c: Coords): maplibregl.LngLatBounds =>
+  typeof c === "number" ? b : isPoint(c) ? b.extend(c) : c.reduce(extend, b);
+const boundsOf = (id: string) =>
+  map
+    .querySourceFeatures("boundary", { sourceLayer: boundaryLayer(state.era), filter: ["==", ["get", "id"], id] })
+    .flatMap((f) => ("coordinates" in f.geometry ? [f.geometry.coordinates] : []))
+    .reduce(extend, new maplibregl.LngLatBounds());
+const fit = (b: maplibregl.LngLatBounds) => map.fitBounds(b, { padding: 40, maxZoom: 14, duration: 600 });
+const contains = (outer: maplibregl.LngLatBounds, inner: maplibregl.LngLatBounds) =>
+  outer.contains(inner.getSouthWest()) && outer.contains(inner.getNorthEast());
+
+// 選んだ市町村が地図いっぱいに入るように寄せる。画面の外にはみ出していた部分は、
+// 寄せた後に読めたタイルで範囲が広がるので、そのときだけもう一度合わせる
+const focus = (id: string, retry = true) => {
+  const first = boundsOf(id);
+  // 検索で移った直後はタイルがまだ無いので、読み終えてからもう一度だけ試す
+  if (first.isEmpty()) {
+    if (retry) map.once("idle", () => picked === id && focus(id, false));
+    return;
+  }
+  fit(first);
+  map.once("idle", () => {
+    const next = boundsOf(id);
+    if (picked === id && !next.isEmpty() && !contains(first, next)) fit(next);
+  });
+};
+
 // 左の当時の地図でも、右の今の地図でも、当時の市町村をクリックで選べる
 const show = (id: string, name?: string) => {
   setPicked(id);
   saveUrl();
   panel.hidden = false;
   resize();
+  // 統計の欄を開いて地図の幅が変わった後に寄せる (幅が変わるとアニメーションが止まる)
+  requestAnimationFrame(() => requestAnimationFrame(() => picked === id && focus(id)));
   renderPanel(panel, { id, name: name ?? id, date: state.era.boundaryDate }).catch((err: unknown) => {
     // 別の市町村を選び直した後や年代を変えた後に届いた失敗は書かない
     if (picked === id) panel.innerHTML = `<p class="note">統計を読み込めませんでした（${esc(String(err))}）。</p>`;
