@@ -10,14 +10,16 @@ export type Era = {
 
 const gsi = (id: string, ext: string) =>
   `https://cyberjapandata.gsi.go.jp/xyz/${id}/{z}/{x}/{y}.${ext}`;
+/** 写真の無い所が黒い JPEG。黒を透明にして読む (nodata.ts) */
+const gazo = (id: string) => gsi(id, "jpg").replace("https://", "nodata://");
 
 export const ERAS: readonly Era[] = [
   { id: "1945", label: "1945〜1950年", tiles: gsi("ort_USA10", "png"), boundaryDate: "1950-10-01" },
   { id: "1961", label: "1961〜1969年", tiles: gsi("ort_old10", "png"), boundaryDate: "1965-10-01" },
-  { id: "1974", label: "1974〜1978年", tiles: gsi("gazo1", "jpg"), boundaryDate: "1975-10-01" },
-  { id: "1979", label: "1979〜1983年", tiles: gsi("gazo2", "jpg"), boundaryDate: "1980-10-01" },
-  { id: "1984", label: "1984〜1986年", tiles: gsi("gazo3", "jpg"), boundaryDate: "1985-10-01" },
-  { id: "1987", label: "1987〜1990年", tiles: gsi("gazo4", "jpg"), boundaryDate: "1985-10-01" },
+  { id: "1974", label: "1974〜1978年", tiles: gazo("gazo1"), boundaryDate: "1975-10-01" },
+  { id: "1979", label: "1979〜1983年", tiles: gazo("gazo2"), boundaryDate: "1980-10-01" },
+  { id: "1984", label: "1984〜1986年", tiles: gazo("gazo3"), boundaryDate: "1985-10-01" },
+  { id: "1987", label: "1987〜1990年", tiles: gazo("gazo4"), boundaryDate: "1985-10-01" },
 ];
 
 /** 写真のズームの範囲 (地理院タイル一覧) */

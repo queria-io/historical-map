@@ -2,9 +2,11 @@ import maplibregl, { type StyleSpecification } from "maplibre-gl";
 import { Protocol } from "pmtiles";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
+import "./nodata";
 import { boundaryLayer, CURRENT_MAPS, type Era, ERAS, PALE_TILES, PHOTO_MAXZOOM, PHOTO_MINZOOM } from "./eras";
 import { getDB } from "./db";
 import { esc, renderPanel } from "./panel";
+import { existsAt, type Hit, search } from "./search";
 import logo from "./queria-logo.svg?raw";
 
 /** 当時の市区町村の境界 (dataset-codh の scripts/build-tiles.sh) */
@@ -280,6 +282,63 @@ $<HTMLInputElement>("#now-boundary").addEventListener("change", (e) => {
   state.nowBoundary = (e.target as HTMLInputElement).checked;
   for (const id of ["now-casing", "now-line"]) now.setLayoutProperty(id, "visibility", state.nowBoundary ? "visible" : "none");
 });
+
+// 地名の検索
+const qInput = $<HTMLInputElement>("#q");
+const hitsEl = $<HTMLUListElement>("#hits");
+let hits: Hit[] = [];
+let ticket = 0;
+let timer: ReturnType<typeof setTimeout> | undefined;
+const listHits = (items: Hit[], empty = "見つかりませんでした") => {
+  hits = items;
+  hitsEl.hidden = false;
+  hitsEl.innerHTML = items.length
+    ? items.map((h, i) => `<li data-i="${i}">${esc(h.label)}<small>${esc(h.note)}</small></li>`).join("")
+    : `<li class="empty">${empty}</li>`;
+};
+const go = (h: Hit) => {
+  hitsEl.hidden = true;
+  qInput.value = h.label;
+  // 統計の欄を開くと地図の大きさが変わってアニメーションが止まるので、動かさずに移す
+  const fly = () => map.jumpTo({ center: [h.lng, h.lat], zoom: Math.max(map.getZoom(), h.id ? 12 : 14) });
+  // 今の年代に無い市町村は、あった年代のうち一番新しいものに切り替える
+  const id = h.id;
+  const era = id && (existsAt(h, state.era.boundaryDate) ? state.era : [...ERAS].reverse().find((e) => existsAt(h, e.boundaryDate)));
+  if (!id || !era) return fly();
+  const open = () => {
+    show(id, h.label);
+    fly();
+  };
+  if (era === state.era) return open();
+  setEra(era);
+  map.once("idle", open);
+};
+qInput.addEventListener("input", () => {
+  clearTimeout(timer);
+  const q = qInput.value.trim();
+  if (!q) {
+    hitsEl.hidden = true;
+    return;
+  }
+  timer = setTimeout(() => {
+    const mine = ++ticket;
+    listHits([], "検索しています…");
+    search(q, state.era.boundaryDate)
+      .then((items) => mine === ticket && listHits(items))
+      .catch(() => mine === ticket && listHits([], "検索できませんでした"));
+  }, 300);
+});
+qInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && hits[0]) go(hits[0]);
+  if (e.key === "Escape") hitsEl.hidden = true;
+});
+hitsEl.addEventListener("click", (e) => {
+  const li = (e.target as HTMLElement).closest<HTMLElement>("li[data-i]");
+  if (li) go(hits[Number(li.dataset.i)]);
+});
+
+const about = $<HTMLDialogElement>("#about");
+$("#about-open").addEventListener("click", () => about.showModal());
 
 render();
 // 共有された URL (?city=) の市町村を開く。塗りは境界のタイルを読んでから付ける
