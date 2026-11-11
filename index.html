@@ -14,7 +14,8 @@
         <label><input type="radio" name="screens" value="1" /> 1画面</label>
         <label><input type="radio" name="screens" value="2" checked /> 2画面</label>
       </fieldset>
-      <label class="check"><input id="boundary" type="checkbox" checked /> 当時の境界線</label>
+      <label class="check"><input id="boundary" type="checkbox" checked /> <i class="key-old"></i>当時の境界線</label>
+      <label class="check" id="now-boundary-field"><input id="now-boundary" type="checkbox" checked /> <i class="key-now"></i>今の境界線（右）</label>
       <label class="field">写真の不透明度
         <select id="opacity">
           <option value="1">100%</option>
@@ -37,7 +38,7 @@
         </legend>
         <div id="eras"></div>
       </fieldset>
-      <p class="hint">写真の無い地域があります。市町村をクリックすると統計を表示します。</p>
+      <p class="hint">写真の無い地域があります。右の地図では今と当時の境界を重ねて表示します。左の市町村をクリックすると統計を表示し、右の地図にその形を太い破線で示します。</p>
       <a class="powered" href="https://queria.io/" target="_blank" rel="noopener">
         Powered by <span id="logo" role="img" aria-label="Queria"></span>
       </a>

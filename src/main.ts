@@ -27,7 +27,11 @@ const state = {
   current: currentOf(params.get("now")),
   opacity: 1,
   boundary: true,
+  nowBoundary: true,
 };
+
+/** 左で選んだ当時の市町村 (geoshape_city_id) */
+let picked: string | undefined;
 
 const saveUrl = () => {
   const q = new URLSearchParams({ era: state.era.id, screens: String(state.screens), now: state.current.id });
@@ -85,15 +89,48 @@ const oldStyle = (era: Era): StyleSpecification => {
   };
 };
 
-// 右の地図: 今の地理院地図
-const nowStyle = (c: (typeof CURRENT_MAPS)[number]): StyleSpecification => ({
-  version: 8,
-  sources: { now: { type: "raster", tiles: [c.tiles], tileSize: 256, maxzoom: c.maxzoom, attribution: GSI } },
-  layers: [{ id: "now", type: "raster", source: "now" }],
-});
+// 右の地図: 今の地理院地図に今の市区町村の境界 (Queria の境界タイル) と当時の境界を重ね、
+// 境界の変化を見比べられるようにする。左で選んだ当時の市町村は太い破線で示す
+const NOW_BOUNDARY_TILES = "https://assets.queria.io/boundaries/boundaries-20261103.pmtiles";
+const MLIT =
+  '<a href="https://nlftp.mlit.go.jp/ksj/" target="_blank">「国土数値情報（行政区域データ）」（国土交通省）</a>を加工';
+const lineWidth = (a: number, b: number) => ["interpolate", ["linear"], ["zoom"], 6, a, 12, b] as ["interpolate", ["linear"], ["zoom"], number, number, number, number];
+const nowStyle = (c: (typeof CURRENT_MAPS)[number], era: Era): StyleSpecification => {
+  const visibility = state.nowBoundary ? "visible" : "none";
+  return {
+    version: 8,
+    sources: {
+      now: { type: "raster", tiles: [c.tiles], tileSize: 256, maxzoom: c.maxzoom, attribution: GSI },
+      // 市区町村のレイヤーはズーム 12 まで。それより寄ったら 12 のタイルを拡大して使う
+      city: { type: "vector", url: `pmtiles://${NOW_BOUNDARY_TILES}`, maxzoom: 12, attribution: MLIT },
+      boundary: { type: "vector", url: `pmtiles://${BOUNDARY_TILES}` },
+    },
+    layers: [
+      { id: "now", type: "raster", source: "now" },
+      { id: "now-casing", type: "line", source: "city", "source-layer": "city", layout: { visibility }, paint: { "line-color": "#ffffff", "line-opacity": 0.8, "line-width": lineWidth(2, 4.5) } },
+      { id: "now-line", type: "line", source: "city", "source-layer": "city", layout: { visibility }, paint: { "line-color": "#7846be", "line-width": lineWidth(0.8, 2) } },
+      {
+        id: "old-line",
+        type: "line",
+        source: "boundary",
+        "source-layer": boundaryLayer(era),
+        layout: { visibility: state.boundary ? "visible" : "none" },
+        paint: { "line-color": "#d97706", "line-width": lineWidth(0.8, 1.8), "line-dasharray": [3, 2] },
+      },
+      {
+        id: "picked-line",
+        type: "line",
+        source: "boundary",
+        "source-layer": boundaryLayer(era),
+        filter: ["==", ["get", "id"], picked ?? ""],
+        paint: { "line-color": "#b45309", "line-width": lineWidth(3, 5), "line-dasharray": [2, 1] },
+      },
+    ],
+  };
+};
 
 const map = new maplibregl.Map({ container: "map", style: oldStyle(state.era), center: [139.6, 35.7], zoom: 10, hash: true });
-const now = new maplibregl.Map({ container: "map-now", style: nowStyle(state.current), center: map.getCenter(), zoom: map.getZoom() });
+const now = new maplibregl.Map({ container: "map-now", style: nowStyle(state.current, state.era), center: map.getCenter(), zoom: map.getZoom() });
 map.addControl(new maplibregl.NavigationControl(), "top-right");
 now.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
 
@@ -132,12 +169,12 @@ now.on("mouseout", () => showOnOld(null));
 
 // 選んだ市町村の塗り
 const panel = $<HTMLElement>("#panel");
-let picked: string | undefined;
 const setPicked = (id: string | undefined) => {
   const target = (i: string) => ({ source: "boundary", sourceLayer: boundaryLayer(state.era), id: i });
   if (picked !== undefined) map.setFeatureState(target(picked), { picked: false });
   picked = id;
   if (id !== undefined) map.setFeatureState(target(id), { picked: true });
+  if (now.getLayer("picked-line")) now.setFilter("picked-line", ["==", ["get", "id"], id ?? ""]);
 };
 
 map.on("mousemove", "city-fill", () => (map.getCanvas().style.cursor = "pointer"));
@@ -174,6 +211,7 @@ const render = () => {
   currentSelect.value = state.current.id;
   $<HTMLElement>("#map-now").hidden = state.screens === 1;
   $<HTMLElement>("#current-field").hidden = state.screens === 1;
+  $<HTMLElement>("#now-boundary-field").hidden = state.screens === 1;
   $<HTMLButtonElement>("#prev").disabled = state.era === ERAS[0];
   $<HTMLButtonElement>("#next").disabled = state.era === ERAS[ERAS.length - 1];
   saveUrl();
@@ -186,6 +224,7 @@ const setEra = (era: Era) => {
   state.era = era;
   panel.hidden = true;
   map.setStyle(oldStyle(era));
+  now.setStyle(nowStyle(state.current, era));
   render();
 };
 const stepEra = (d: number) => setEra(ERAS[Math.min(Math.max(ERAS.indexOf(state.era) + d, 0), ERAS.length - 1)]);
@@ -201,7 +240,7 @@ document.addEventListener("change", (e) => {
 });
 currentSelect.addEventListener("change", () => {
   state.current = currentOf(currentSelect.value);
-  now.setStyle(nowStyle(state.current));
+  now.setStyle(nowStyle(state.current, state.era));
   render();
 });
 $<HTMLSelectElement>("#opacity").addEventListener("change", (e) => {
@@ -210,7 +249,13 @@ $<HTMLSelectElement>("#opacity").addEventListener("change", (e) => {
 });
 $<HTMLInputElement>("#boundary").addEventListener("change", (e) => {
   state.boundary = (e.target as HTMLInputElement).checked;
-  for (const id of ["city-casing", "city-line"]) map.setLayoutProperty(id, "visibility", state.boundary ? "visible" : "none");
+  const v = state.boundary ? "visible" : "none";
+  for (const id of ["city-casing", "city-line"]) map.setLayoutProperty(id, "visibility", v);
+  now.setLayoutProperty("old-line", "visibility", v);
+});
+$<HTMLInputElement>("#now-boundary").addEventListener("change", (e) => {
+  state.nowBoundary = (e.target as HTMLInputElement).checked;
+  for (const id of ["now-casing", "now-line"]) now.setLayoutProperty(id, "visibility", state.nowBoundary ? "visible" : "none");
 });
 
 render();
