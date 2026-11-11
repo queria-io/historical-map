@@ -15,7 +15,17 @@
 | 今の市区町村の人口・世帯数・面積・人口密度 | `e_stat.census.census_municipality_2025` |
 | 当時の区域の人口・世帯数（1995 年から、その年の市町村コード） | `e_stat.resident_registry.population`（日本人住民） |
 | 今の市区町村の人口の推移と年齢 3 区分の割合（今の区域に組み替えた値） | `e_stat.ssds.a_municipal_population` |
-| 今の市区町村の人口ピラミッド（男女・5 歳階級） | `e_stat.census.census_municipality_age_2025` |
+| 今の市区町村の住宅地の地価の中央値（1995 年から） | `reinfolib.main.mart_land_prices`（地価公示・地価調査） |
+
+## 構成
+
+React と MapLibre で書いています。ほかの地図のアプリでも使える部品は `src/kit/` に分けています。
+
+- `kit/db.ts`: ブラウザの DuckDB（WASM）で Queria のデータセットに SQL を実行する。SQL に名前が出てきたデータセットだけを ATTACH する
+- `kit/MapView.tsx`: MapLibre の地図。スタイルを渡し直すと差分だけを当てる
+- `kit/sync.ts`・`kit/bounds.ts`: 2 つの地図の連動と十字、地物に寄せる処理
+- `kit/photoTiles.ts`: 地理院の年代別写真の黒い所を透明にし、写真の有無を知らせる
+- `kit/PlaceSearch.tsx`・`kit/geocoder.ts`・`kit/ShareButtons.tsx`・`kit/PoweredBy.tsx`・`kit/charts.tsx`: 検索欄、ジオコーダー、共有ボタン、Powered by、グラフ
 
 ## 開発
 
@@ -35,3 +45,4 @@ main にマージすると、Cloudflare の Workers Builds が `pnpm run build` 
 - 「国土数値情報（行政区域データ）」（国土交通省）を加工
 - 『歴史的行政区域データセットβ版』（CODH作成） doi:10.20676/00000447 を加工
 - 政府統計の総合窓口（e-Stat）の統計を加工
+- 地価公示・都道府県地価調査（国土交通省 不動産情報ライブラリ）を加工

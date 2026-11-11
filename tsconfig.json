@@ -3,11 +3,22 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2022", "DOM"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "strict": true,
     "noEmit": true,
-    "types": ["vite/client", "geojson"],
-    "skipLibCheck": true
+    "types": [
+      "vite/client",
+      "geojson"
+    ],
+    "skipLibCheck": true,
+    "jsx": "react-jsx"
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "vite.config.ts"
+  ]
 }
