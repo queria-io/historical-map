@@ -5,20 +5,20 @@
 - 背景: [地理院タイル](https://maps.gsi.go.jp/development/ichiran.html)の年代別空中写真と、今の地図（標準地図・淡色地図・最新の写真）。ブラウザからリアルタイムに読み込みます
 - 今の境界: Queria の境界タイル（`nlftp` の行政区域、assets.queria.io/boundaries/）
 - 当時の境界: `codh` データセットの `city.boundary` を PMTiles にしたもの（dataset-codh の `scripts/build-tiles.sh`、assets.queria.io に置く）
-- 統計: `codh` と `e_stat` から `scripts/build_data.py` が都道府県ごとの JSON（`public/data/`）を作ります
+- 統計: クリックした市町村の値を、ブラウザの DuckDB（WASM）で Queria の公開データセットに SQL を実行して取得します。欄ごとに実行した SQL を表示し、queria.io でそのままレポートにできます
 
-| 表示する統計 | 元のテーブル | 期間 | 区域 |
-| --- | --- | --- | --- |
-| 人口・年齢 3 区分・世帯数 | `e_stat.ssds.a_municipal_population`、`e_stat.census.census_municipality_2025` | 1980〜2025 年 | 今の市区町村（組み替え済み） |
-| 人口・出生・死亡・転入・転出 | `e_stat.resident_registry.population`（日本人住民） | 1995 年〜 | その年の市町村 |
-
-当時の市町村と今の市区町村は、`codh.city.current_overlap` の面積の割合（10% 以上）で対応させます。
+| 表示する値 | 元のテーブル |
+| --- | --- |
+| 当時の市町村の名前・期間・面積、今の市区町村との重なり | `codh.city.municipality`、`codh.city.current_overlap` |
+| 移り変わり（合併・編入・改称・分割） | `codh.city.succession` |
+| 今の市区町村の人口・世帯数・面積・人口密度 | `e_stat.census.census_municipality_2025` |
+| 当時の区域の人口・世帯数（1995 年から、その年の市町村コード） | `e_stat.resident_registry.population`（日本人住民） |
+| 今の市区町村の人口・世帯数の推移（今の区域に組み替えた値） | `e_stat.ssds.a_municipal_population` |
 
 ## 開発
 
 ```bash
 pnpm install
-pnpm build:data        # public/data/*.json を作る（uv が要ります）
 pnpm dev               # ?era=1961&screens=2&now=std で年代・画面数・右の地図を指定できます
 pnpm run deploy        # 手元からビルドして Cloudflare Workers にデプロイする
 ```

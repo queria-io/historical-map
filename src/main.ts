@@ -3,6 +3,7 @@ import { Protocol } from "pmtiles";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
 import { boundaryLayer, CURRENT_MAPS, type Era, ERAS, PALE_TILES, PHOTO_MAXZOOM, PHOTO_MINZOOM } from "./eras";
+import { getDB } from "./db";
 import { renderPanel } from "./panel";
 import logo from "./queria-logo.svg?raw";
 
@@ -226,6 +227,8 @@ const setEra = (era: Era) => {
   map.setStyle(oldStyle(era));
   now.setStyle(nowStyle(state.current, era));
   render();
+// クリックを待たずに DuckDB を起こしておく
+getDB().catch(() => undefined);
 };
 const stepEra = (d: number) => setEra(ERAS[Math.min(Math.max(ERAS.indexOf(state.era) + d, 0), ERAS.length - 1)]);
 
@@ -237,11 +240,15 @@ document.addEventListener("change", (e) => {
   if (t.name !== "screens") return;
   state.screens = t.value === "1" ? 1 : 2;
   render();
+// クリックを待たずに DuckDB を起こしておく
+getDB().catch(() => undefined);
 });
 currentSelect.addEventListener("change", () => {
   state.current = currentOf(currentSelect.value);
   now.setStyle(nowStyle(state.current, state.era));
   render();
+// クリックを待たずに DuckDB を起こしておく
+getDB().catch(() => undefined);
 });
 $<HTMLSelectElement>("#opacity").addEventListener("change", (e) => {
   state.opacity = Number((e.target as HTMLSelectElement).value);
@@ -259,3 +266,5 @@ $<HTMLInputElement>("#now-boundary").addEventListener("change", (e) => {
 });
 
 render();
+// クリックを待たずに DuckDB を起こしておく
+getDB().catch(() => undefined);

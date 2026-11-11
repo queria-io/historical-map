@@ -71,3 +71,16 @@ a { color: var(--c0); }
 .key-old, .key-now { display: inline-block; width: 16px; height: 0; margin-right: 2px; }
 .key-old { border-top: 2px dashed #d97706; }
 .key-now { border-top: 2px solid #7846be; }
+.compare { width: 100%; border-collapse: collapse; font-size: 12px; margin: 4px 0; }
+.compare th, .compare td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.compare thead th { font-weight: 600; }
+.compare tbody th { color: var(--muted); font-weight: 400; white-space: nowrap; }
+.compare .meta { display: block; font-size: 11px; }
+.chain { margin: 4px 0; padding-left: 18px; font-size: 12px; }
+.chain li { margin: 4px 0; }
+.chain .self b { color: #b45309; }
+.chain .prev { color: var(--muted); list-style: none; margin-left: -18px; }
+details.sql { margin: 6px 0; font-size: 11px; }
+details.sql summary, details.trend summary { cursor: pointer; color: var(--muted); }
+details.sql pre { white-space: pre-wrap; background: color-mix(in srgb, var(--line) 40%, transparent); padding: 6px; border-radius: 4px; font-size: 10.5px; max-height: 220px; overflow: auto; }
+details.trend { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
