@@ -110,7 +110,7 @@ const chainBlock = (before: Before[], steps: Step[]) => {
 
 /** X での共有とリンクのコピー。URL には年代・位置・選んだ市町村が入る */
 const xIntent = (text: string) =>
-  `https://x.com/intent/post?${new URLSearchParams({ text, url: location.href, hashtags: "過去の地図と統計" })}`;
+  `https://x.com/intent/post?${new URLSearchParams({ text, url: location.href, hashtags: "まちの昔と今" })}`;
 const shareBar = (text: string) => `<div class="share">
     <a class="x" href="${esc(xIntent(text))}" data-text="${esc(text)}" target="_blank" rel="noopener">X でシェア</a>
     <button class="copy" type="button">リンクをコピー</button></div>`;
