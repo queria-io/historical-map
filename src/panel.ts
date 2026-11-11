@@ -1,6 +1,6 @@
 // クリックした当時の市町村の情報欄。Queria の公開データセットに、ブラウザから SQL を実行して組み立てる
-import { lineChart, type Point } from "./chart";
-import { query, reportUrl } from "./db";
+import { ageShare, lineChart, type Point, pyramid } from "./chart";
+import { query } from "./db";
 
 export type Picked = { id: string; code?: string; name: string; date: string };
 
@@ -12,13 +12,6 @@ const period = (from: unknown, to: unknown) => (to == null ? `${year(from)}年�
 const fmt = (v: number | null | undefined, digits = 0) =>
   v == null ? "—" : v.toLocaleString("ja-JP", { maximumFractionDigits: digits });
 const shortName = (name: string | undefined) => name?.split(" ").pop() ?? "";
-
-/** SQL と、queria.io でそのままレポートにするリンク。レポートの SQL ブロックは 1 文ずつなので、リンクも 1 文ずつ作る */
-const sqlBox = (...sqls: string[]) => `
-  <details class="sql"><summary>SQL</summary>${sqls
-    .map((sql) => `<pre>${esc(sql.trim())}</pre>
-  <a href="${esc(reportUrl(sql.trim()))}" target="_blank" rel="noopener">Queria でレポートにする</a>`)
-    .join("")}</details>`;
 
 // --- 当時の市町村と、今の市区町村との重なり ---
 type City = {
@@ -83,15 +76,22 @@ WHERE area_level = 'municipality' AND resident_kind = 'japanese' AND area_code =
 ORDER BY year
 LIMIT 1`;
 
-// --- 今の市区町村の推移 (社会・人口統計体系。今の区域に組み替えた値) ---
-type Series = { indicator: string; points: [number, number][] };
-const seriesSql = (code: string) => `
-SELECT CASE cat01 WHEN 'A1101' THEN '人口' WHEN 'A7101' THEN '世帯数' END AS indicator,
-  list([year::DOUBLE, value] ORDER BY year) AS points
-FROM e_stat.ssds.a_municipal_population
-WHERE area = ${lit(code)} AND cat01 IN ('A1101', 'A7101') AND value IS NOT NULL
-GROUP BY ALL
-ORDER BY any_value(cat01)`;
+// --- 今の市区町村の推移と年齢 3 区分 (社会・人口統計体系。今の区域に組み替えた値) ---
+type Yearly = { year: number; population: number | null; young: number | null; working: number | null; old: number | null };
+const yearlySql = (code: string) => `
+PIVOT (
+  SELECT year, cat01, value FROM e_stat.ssds.a_municipal_population
+  WHERE area = ${lit(code)} AND cat01 IN ('A1101', 'A1301', 'A1302', 'A1303') AND value IS NOT NULL
+) ON cat01 IN ('A1101' AS population, 'A1301' AS young, 'A1302' AS working, 'A1303' AS old)
+USING any_value(value) GROUP BY year ORDER BY year`;
+
+// --- 今の市区町村の人口ピラミッド (令和7年国勢調査) ---
+type Age = { age: number; male: number; female: number };
+const ageSql = (code: string) => `
+SELECT age_from AS age, population_male AS male, population_female AS female
+FROM e_stat.census.census_municipality_age_2025
+WHERE area = ${lit(code)} AND area_level IN ('city', 'ward', 'town_village') AND age_from IS NOT NULL
+ORDER BY age_from`;
 
 /** 移り変わりのテーブルがまだ無いときなどは、その欄だけを出さない */
 const safe = <T>(p: Promise<T[]>): Promise<T[]> => p.catch(() => []);
@@ -108,6 +108,14 @@ const chainBlock = (before: Before[], steps: Step[]) => {
   return items.length > 1 || prev ? `<h3>移り変わり</h3><ol class="chain">${prev}${items.join("")}</ol>` : "";
 };
 
+/** X での共有とリンクのコピー。URL には年代・位置・選んだ市町村が入る */
+const shareBar = (text: string) => {
+  const x = new URLSearchParams({ text, url: location.href, hashtags: "過去の地図と統計" });
+  return `<div class="share">
+    <a class="x" href="https://x.com/intent/post?${esc(x.toString())}" target="_blank" rel="noopener">X でシェア</a>
+    <button class="copy" type="button">リンクをコピー</button></div>`;
+};
+
 const row = (label: string, then: string, now: string) => `<tr><th>${label}</th><td>${then}</td><td>${now}</td></tr>`;
 
 const compareBlock = (city: City, reg: Registry | undefined, now: Now | undefined, share: number, currentShare: number) => {
@@ -116,7 +124,7 @@ const compareBlock = (city: City, reg: Registry | undefined, now: Now | undefine
   return `
     <h3>当時と今</h3>
     <table class="compare">
-      <thead><tr><th></th><th>${esc(city.full_name)}</th><th>${nowName}</th></tr></thead>
+      <thead><tr><th></th><th class="then"><small>当時</small>${esc(city.full_name)}</th><th class="now"><small>現在</small>${nowName}</th></tr></thead>
       <tbody>
         ${row("期間", period(city.valid_from, city.valid_to), "現在")}
         ${row("面積", `${fmt(city.area_km2, 1)} km²`, `${fmt(now?.area_km2, 1)} km²`)}
@@ -151,37 +159,57 @@ export async function renderPanel(el: HTMLElement, picked: Picked): Promise<void
   const nowOf = (code: string | undefined) => nows.find((n) => n.area === code);
   const others = current.slice(1);
   const mainName = esc(shortName(nowOf(main?.code)?.name) || "市区町村");
-  const compareSqls = [citySql(picked.id), codes.length ? nowSql(codes) : "", city.city_code ? registrySql(city.city_code) : ""].filter(
-    Boolean,
-  );
   el.innerHTML = `
     <h2>${esc(city.full_name)}</h2>
     <p class="meta">${esc(city.address.split("/")[0])}・${picked.date.slice(0, 4)}年の境界</p>
+    ${shareBar(`${city.full_name}（${period(city.valid_from, city.valid_to)}）と今の${shortName(nowOf(main?.code)?.name) || "市区町村"}を、空中写真と統計で比べる`)}
     ${main ? compareBlock(city, registry[0], nowOf(main.code), main.share, main.current_share) : `<p class="note">今の市区町村との対応がありません。</p>`}
     ${others.length ? `<p class="note">ほかに ${others.map((o) => `${esc(shortName(nowOf(o.code)?.name) || o.code)}（${Math.round(o.share * 100)}%）`).join("・")}に入っています。</p>` : ""}
-    ${sqlBox(...compareSqls)}
     ${chainBlock(before, steps)}
-    ${steps.length ? sqlBox(chainSql(picked.id)) : ""}
-    ${main ? `<details class="trend"><summary>今の${mainName}の推移</summary><div class="charts"><p class="note">読み込み中…</p></div></details>` : ""}
+    ${main ? `<section class="charts"><h3>今の${mainName}の人口ピラミッド<span class="meta">2025年 国勢調査</span></h3><div id="pyramid"><p class="note">読み込み中…</p></div>
+      <h3>年齢構成の移り変わり<span class="meta">今の${mainName}の区域</span></h3><div id="ages"><p class="note">読み込み中…</p></div>
+      <h3>人口の推移<span class="meta">今の${mainName}の区域</span></h3><div id="trend"><p class="note">読み込み中…</p></div></section>` : ""}
     <p class="source">
       データ: Queria の <a href="https://queria.io/datasets/queria/codh" target="_blank" rel="noopener">codh</a>・<a href="https://queria.io/datasets/queria/e_stat" target="_blank" rel="noopener">e_stat</a>（${((performance.now() - started) / 1000).toFixed(1)} 秒）<br />
       <a href="https://geoshape.ex.nii.ac.jp/city/resource/${esc(picked.id)}.html" target="_blank" rel="noopener">CODH の市区町村のページ</a>
     </p>`;
-  // 推移は開いたときに読む (統計の表を広く読むので数秒かかる)
-  const trend = el.querySelector<HTMLDetailsElement>("details.trend");
-  if (main && trend) trend.addEventListener("toggle", () => trend.open && renderTrend(trend, main.code), { once: true });
+  el.querySelector<HTMLButtonElement>(".share .copy")?.addEventListener("click", (e) => {
+    const button = e.currentTarget as HTMLButtonElement;
+    navigator.clipboard.writeText(location.href).then(
+      () => (button.textContent = "コピーしました"),
+      () => (button.textContent = "コピーできませんでした"),
+    );
+  });
+  if (main) await renderCharts(el, main.code, () => ticket === latest);
 }
 
-async function renderTrend(el: HTMLElement, code: string): Promise<void> {
-  const box = el.querySelector<HTMLElement>(".charts");
-  if (!box) return;
-  const series = await query<Series>(seriesSql(code)).catch((e: unknown) => {
-    box.innerHTML = `<p class="note">読み込めませんでした（${esc(String(e))}）。</p>`;
-    return null;
-  });
-  if (!series) return;
-  box.innerHTML =
-    series
-      .flatMap((s) => (s.points.length ? [`<h4>${esc(s.indicator)}</h4>${lineChart([{ label: s.indicator, points: s.points as Point[] }])}`] : []))
-      .join("") + `<p class="note">今の区域に組み替えた値です（社会・人口統計体系）。</p>${sqlBox(seriesSql(code))}`;
+/** グラフは表の後から読む。統計の表を広く読むので数秒かかる */
+async function renderCharts(el: HTMLElement, code: string, alive: () => boolean): Promise<void> {
+  const put = (sel: string, html: string) => {
+    const box = el.querySelector<HTMLElement>(sel);
+    if (box && alive()) box.innerHTML = html;
+  };
+  const failed = (e: unknown) => `<p class="note">読み込めませんでした（${esc(String(e))}）。</p>`;
+  await Promise.all([
+    query<Age>(ageSql(code)).then(
+      (rows) => put("#pyramid", rows.length ? pyramid(rows) : `<p class="note">値がありません。</p>`),
+      (e: unknown) => put("#pyramid", failed(e)),
+    ),
+    query<Yearly>(yearlySql(code)).then(
+      (rows) => {
+        const ages = rows.flatMap((r) =>
+          r.young != null && r.working != null && r.old != null && r.year % 10 === 0
+            ? [{ year: r.year, young: r.young, working: r.working, old: r.old }]
+            : [],
+        );
+        const points = rows.flatMap((r): Point[] => (r.population != null ? [[r.year, r.population]] : []));
+        put("#ages", ages.length ? ageShare(ages) : `<p class="note">値がありません。</p>`);
+        put("#trend", points.length ? lineChart([{ label: "人口", points }]) : `<p class="note">値がありません。</p>`);
+      },
+      (e: unknown) => {
+        put("#ages", failed(e));
+        put("#trend", failed(e));
+      },
+    ),
+  ]);
 }

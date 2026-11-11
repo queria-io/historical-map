@@ -36,6 +36,7 @@ let picked: string | undefined;
 
 const saveUrl = () => {
   const q = new URLSearchParams({ era: state.era.id, screens: String(state.screens), now: state.current.id });
+  if (picked) q.set("city", picked);
   history.replaceState(null, "", `?${q}${location.hash}`);
 };
 
@@ -110,6 +111,8 @@ const nowStyle = (c: (typeof CURRENT_MAPS)[number], era: Era): StyleSpecificatio
       { id: "now", type: "raster", source: "now" },
       { id: "now-casing", type: "line", source: "city", "source-layer": "city", layout: { visibility }, paint: { "line-color": "#ffffff", "line-opacity": 0.8, "line-width": lineWidth(2, 4.5) } },
       { id: "now-line", type: "line", source: "city", "source-layer": "city", layout: { visibility }, paint: { "line-color": "#7846be", "line-width": lineWidth(0.8, 2) } },
+      // クリックで当時の市町村を選ぶための見えない塗り
+      { id: "old-fill", type: "fill", source: "boundary", "source-layer": boundaryLayer(era), paint: { "fill-opacity": 0 } },
       {
         id: "old-line",
         type: "line",
@@ -161,6 +164,16 @@ const cross = (target: maplibregl.Map) => {
     }
   };
 };
+// どちらが当時でどちらが現在かを、地図の左上に出す
+const badge = (target: maplibregl.Map, kind: "old" | "now") => {
+  const el = document.createElement("div");
+  el.className = `badge badge-${kind}`;
+  target.getContainer().append(el);
+  return el;
+};
+const oldBadge = badge(map, "old");
+const nowBadge = badge(now, "now");
+
 const showOnNow = cross(now);
 const showOnOld = cross(map);
 map.on("mousemove", (e) => showOnNow(e.lngLat));
@@ -178,21 +191,26 @@ const setPicked = (id: string | undefined) => {
   if (now.getLayer("picked-line")) now.setFilter("picked-line", ["==", ["get", "id"], id ?? ""]);
 };
 
-map.on("mousemove", "city-fill", () => (map.getCanvas().style.cursor = "pointer"));
-map.on("mouseleave", "city-fill", () => (map.getCanvas().style.cursor = ""));
-map.on("click", "city-fill", (e) => {
-  const f = e.features?.[0];
-  const props = f?.properties as { id?: string; code?: string; name?: string } | undefined;
-  if (!f || !props?.id) return;
-  const id = props.id;
+// 左の当時の地図でも、右の今の地図でも、当時の市町村をクリックで選べる
+const show = (id: string, name?: string) => {
   setPicked(id);
+  saveUrl();
   panel.hidden = false;
   resize();
-  renderPanel(panel, { id, code: props.code, name: props.name ?? id, date: state.era.boundaryDate }).catch((err: unknown) => {
+  renderPanel(panel, { id, name: name ?? "", date: state.era.boundaryDate }).catch((err: unknown) => {
     // 別の市町村を選び直した後や年代を変えた後に届いた失敗は書かない
     if (picked === id) panel.innerHTML = `<p class="note">統計を読み込めませんでした（${esc(String(err))}）。</p>`;
   });
-});
+};
+const pick = (e: maplibregl.MapLayerMouseEvent) => {
+  const props = e.features?.[0]?.properties as { id?: string; name?: string } | undefined;
+  if (props?.id) show(props.id, props.name);
+};
+for (const [target, layer] of [[map, "city-fill"], [now, "old-fill"]] as const) {
+  target.on("mousemove", layer, () => (target.getCanvas().style.cursor = "pointer"));
+  target.on("mouseleave", layer, () => (target.getCanvas().style.cursor = ""));
+  target.on("click", layer, pick);
+}
 
 const resize = () => {
   map.resize();
@@ -209,6 +227,8 @@ const currentSelect = $<HTMLSelectElement>("#current");
 currentSelect.innerHTML = CURRENT_MAPS.map((c) => `<option value="${c.id}">${c.label}</option>`).join("");
 
 const render = () => {
+  oldBadge.innerHTML = `<b>${state.era.label}</b><span>空中写真・当時の境界</span>`;
+  nowBadge.innerHTML = `<b>現在</b><span>${state.current.label}・今の境界</span>`;
   erasEl.querySelectorAll<HTMLInputElement>("input").forEach((r) => (r.checked = r.value === state.era.id));
   document.querySelectorAll<HTMLInputElement>('input[name="screens"]').forEach((r) => (r.checked = r.value === String(state.screens)));
   currentSelect.value = state.current.id;
@@ -262,5 +282,8 @@ $<HTMLInputElement>("#now-boundary").addEventListener("change", (e) => {
 });
 
 render();
+// 共有された URL (?city=) の市町村を開く。塗りは境界のタイルを読んでから付ける
+const shared = params.get("city");
+if (shared) map.once("idle", () => show(shared));
 // クリックを待たずに DuckDB を起こしておく
 getDB().catch(() => undefined);

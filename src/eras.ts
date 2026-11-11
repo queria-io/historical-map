@@ -30,7 +30,7 @@ export const boundaryLayer = (era: Era) => `city_${era.boundaryDate.replaceAll("
 
 /** 右の地図 (今の地図) に選べる地理院タイル */
 export const CURRENT_MAPS = [
-  { id: "std", label: "標準地図", tiles: gsi("std", "png"), maxzoom: 18 },
   { id: "pale", label: "淡色地図", tiles: PALE_TILES, maxzoom: 18 },
+  { id: "std", label: "標準地図", tiles: gsi("std", "png"), maxzoom: 18 },
   { id: "photo", label: "最新の写真", tiles: gsi("seamlessphoto", "jpg"), maxzoom: 18 },
 ] as const;
