@@ -4,7 +4,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
 import { boundaryLayer, CURRENT_MAPS, type Era, ERAS, PALE_TILES, PHOTO_MAXZOOM, PHOTO_MINZOOM } from "./eras";
 import { getDB } from "./db";
-import { renderPanel } from "./panel";
+import { esc, renderPanel } from "./panel";
 import logo from "./queria-logo.svg?raw";
 
 /** 当時の市区町村の境界 (dataset-codh の scripts/build-tiles.sh) */
@@ -184,12 +184,14 @@ map.on("click", "city-fill", (e) => {
   const f = e.features?.[0];
   const props = f?.properties as { id?: string; code?: string; name?: string } | undefined;
   if (!f || !props?.id) return;
-  setPicked(props.id);
+  const id = props.id;
+  setPicked(id);
   panel.hidden = false;
   resize();
-  renderPanel(panel, { id: props.id, code: props.code, name: props.name ?? props.id, date: state.era.boundaryDate }).catch(
-    (err: unknown) => (panel.innerHTML = `<p class="note">統計を読み込めませんでした（${String(err)}）。</p>`),
-  );
+  renderPanel(panel, { id, code: props.code, name: props.name ?? id, date: state.era.boundaryDate }).catch((err: unknown) => {
+    // 別の市町村を選び直した後や年代を変えた後に届いた失敗は書かない
+    if (picked === id) panel.innerHTML = `<p class="note">統計を読み込めませんでした（${esc(String(err))}）。</p>`;
+  });
 });
 
 const resize = () => {
@@ -227,8 +229,6 @@ const setEra = (era: Era) => {
   map.setStyle(oldStyle(era));
   now.setStyle(nowStyle(state.current, era));
   render();
-// クリックを待たずに DuckDB を起こしておく
-getDB().catch(() => undefined);
 };
 const stepEra = (d: number) => setEra(ERAS[Math.min(Math.max(ERAS.indexOf(state.era) + d, 0), ERAS.length - 1)]);
 
@@ -240,15 +240,11 @@ document.addEventListener("change", (e) => {
   if (t.name !== "screens") return;
   state.screens = t.value === "1" ? 1 : 2;
   render();
-// クリックを待たずに DuckDB を起こしておく
-getDB().catch(() => undefined);
 });
 currentSelect.addEventListener("change", () => {
   state.current = currentOf(currentSelect.value);
   now.setStyle(nowStyle(state.current, state.era));
   render();
-// クリックを待たずに DuckDB を起こしておく
-getDB().catch(() => undefined);
 });
 $<HTMLSelectElement>("#opacity").addEventListener("change", (e) => {
   state.opacity = Number((e.target as HTMLSelectElement).value);

@@ -15,12 +15,27 @@ const boot = async (): Promise<AsyncDuckDB> => {
     eh: { mainModule: `${WASM}/duckdb-eh.wasm`, mainWorker: `${WASM}/duckdb-browser-eh.worker.js` },
   });
   // ワーカーは別オリジンなので、取ってきた中身から起こす
-  const script = await fetch(bundle.mainWorker ?? "").then((r) => r.blob());
-  const worker = new Worker(URL.createObjectURL(script));
+  const res = await fetch(bundle.mainWorker ?? "");
+  if (!res.ok) throw new Error(`${bundle.mainWorker}: ${res.status}`);
+  const scriptUrl = URL.createObjectURL(await res.blob());
+  const worker = new Worker(scriptUrl);
   const db = new duckdb.AsyncDuckDB(new duckdb.VoidLogger(), worker);
-  await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
-  // 既定の true だと Parquet を丸ごと読むので、Range で必要な所だけ読む
-  await db.open({ filesystem: { forceFullHTTPReads: false } });
+  try {
+    await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+    // 既定の true だと Parquet を丸ごと読むので、Range で必要な所だけ読む
+    await db.open({ filesystem: { forceFullHTTPReads: false } });
+    await attach(db);
+  } catch (e) {
+    // 次の getDB で起こし直すので、失敗したワーカーは止める
+    await db.terminate();
+    throw e;
+  } finally {
+    URL.revokeObjectURL(scriptUrl);
+  }
+  return db;
+};
+
+const attach = async (db: AsyncDuckDB): Promise<void> => {
   const conn = await db.connect();
   try {
     await conn.query("INSTALL ducklake; LOAD ducklake");
@@ -42,7 +57,6 @@ const boot = async (): Promise<AsyncDuckDB> => {
   } finally {
     await conn.close();
   }
-  return db;
 };
 
 let dbPromise: Promise<AsyncDuckDB> | null = null;

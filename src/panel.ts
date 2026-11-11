@@ -4,7 +4,7 @@ import { query, reportUrl } from "./db";
 
 export type Picked = { id: string; code?: string; name: string; date: string };
 
-const esc = (s: string) =>
+export const esc = (s: string) =>
   s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
 const lit = (s: string) => `'${s.replaceAll("'", "''")}'`;
 const year = (d: unknown) => (d == null ? "" : new Date(Number(d)).getUTCFullYear().toString());
@@ -13,10 +13,12 @@ const fmt = (v: number | null | undefined, digits = 0) =>
   v == null ? "—" : v.toLocaleString("ja-JP", { maximumFractionDigits: digits });
 const shortName = (name: string | undefined) => name?.split(" ").pop() ?? "";
 
-/** SQL と、queria.io でそのままレポートにするリンク */
-const sqlBox = (sql: string) => `
-  <details class="sql"><summary>SQL</summary><pre>${esc(sql.trim())}</pre>
-  <a href="${esc(reportUrl(sql.trim()))}" target="_blank" rel="noopener">Queria でレポートにする</a></details>`;
+/** SQL と、queria.io でそのままレポートにするリンク。レポートの SQL ブロックは 1 文ずつなので、リンクも 1 文ずつ作る */
+const sqlBox = (...sqls: string[]) => `
+  <details class="sql"><summary>SQL</summary>${sqls
+    .map((sql) => `<pre>${esc(sql.trim())}</pre>
+  <a href="${esc(reportUrl(sql.trim()))}" target="_blank" rel="noopener">Queria でレポートにする</a>`)
+    .join("")}</details>`;
 
 // --- 当時の市町村と、今の市区町村との重なり ---
 type City = {
@@ -43,7 +45,8 @@ type Step = { step: number; full_name: string; valid_from: number; valid_to: num
 const chainSql = (id: string) => `
 WITH RECURSIVE chain AS (
   SELECT ${lit(id)} AS id, 0 AS step, NULL::DATE AS day
-  UNION ALL
+  -- 分割した先がまた合わさると同じ行が 2 回出るので、UNION で重ねない
+  UNION
   SELECT s.successor_geoshape_city_id, c.step + 1, s.change_date
   FROM chain AS c JOIN codh.city.succession AS s ON s.geoshape_city_id = c.id
   WHERE c.step < 12
@@ -125,10 +128,15 @@ const compareBlock = (city: City, reg: Registry | undefined, now: Now | undefine
     <p class="note">当時の面積の ${Math.round(share * 100)}% が今の${nowName}に入り、${nowName}の面積の ${Math.round(currentShare * 100)}% にあたります。${reg ? "当時の人口は住民基本台帳の最初の年（日本人住民）の値です。" : "1995 年より前に消えた市町村は、当時の人口がありません。"}</p>`;
 };
 
+/** 最後に始めた renderPanel の番号。先に始めた方の結果が後から届いても書かない */
+let latest = 0;
+
 export async function renderPanel(el: HTMLElement, picked: Picked): Promise<void> {
+  const ticket = ++latest;
   el.innerHTML = `<h2>${esc(picked.name)}</h2><p class="note">Queria から読み込み中…</p>`;
   const started = performance.now();
   const [city] = await query<City>(citySql(picked.id));
+  if (ticket !== latest) return;
   if (!city) throw new Error(`${picked.id} がありません`);
   const current = city.current ?? [];
   const main = current[0];
@@ -139,18 +147,19 @@ export async function renderPanel(el: HTMLElement, picked: Picked): Promise<void
     codes.length ? query<Now>(nowSql(codes)) : Promise.resolve([]),
     city.city_code ? query<Registry>(registrySql(city.city_code)) : Promise.resolve([]),
   ]);
+  if (ticket !== latest) return;
   const nowOf = (code: string | undefined) => nows.find((n) => n.area === code);
   const others = current.slice(1);
   const mainName = esc(shortName(nowOf(main?.code)?.name) || "市区町村");
-  const compareSql = [citySql(picked.id), codes.length ? nowSql(codes) : "", city.city_code ? registrySql(city.city_code) : ""]
-    .filter(Boolean)
-    .join(";\n");
+  const compareSqls = [citySql(picked.id), codes.length ? nowSql(codes) : "", city.city_code ? registrySql(city.city_code) : ""].filter(
+    Boolean,
+  );
   el.innerHTML = `
     <h2>${esc(city.full_name)}</h2>
     <p class="meta">${esc(city.address.split("/")[0])}・${picked.date.slice(0, 4)}年の境界</p>
     ${main ? compareBlock(city, registry[0], nowOf(main.code), main.share, main.current_share) : `<p class="note">今の市区町村との対応がありません。</p>`}
     ${others.length ? `<p class="note">ほかに ${others.map((o) => `${esc(shortName(nowOf(o.code)?.name) || o.code)}（${Math.round(o.share * 100)}%）`).join("・")}に入っています。</p>` : ""}
-    ${sqlBox(compareSql)}
+    ${sqlBox(...compareSqls)}
     ${chainBlock(before, steps)}
     ${steps.length ? sqlBox(chainSql(picked.id)) : ""}
     ${main ? `<details class="trend"><summary>今の${mainName}の推移</summary><div class="charts"><p class="note">読み込み中…</p></div></details>` : ""}
