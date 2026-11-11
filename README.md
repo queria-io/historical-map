@@ -19,6 +19,7 @@
 pnpm install
 pnpm build:data        # public/data/*.json を作る（uv が要ります）
 pnpm dev
+pnpm run deploy        # ビルドして Cloudflare Workers に出す
 ```
 
 境界タイルの URL は `.env` の `VITE_BOUNDARY_TILES` です。

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "deploy": "pnpm build && wrangler deploy",
+    "deploy": "vite build && wrangler deploy",
     "build:data": "uv run --with 'duckdb>=1.4,<2' python scripts/build_data.py",
     "preview": "vite preview"
   },
@@ -16,6 +16,7 @@
   "devDependencies": {
     "@types/geojson": "^7946.0.16",
     "typescript": "^5.9.3",
-    "vite": "^6.4.6"
+    "vite": "^6.4.6",
+    "wrangler": "^4.160.0"
   }
 }
