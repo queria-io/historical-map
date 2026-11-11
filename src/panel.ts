@@ -76,7 +76,7 @@ export async function renderPanel(el: HTMLElement, picked: Picked): Promise<void
     links.map(async (l) => ({ share: l.share, entry: (await loadPref(l.code.slice(0, 2))).current[l.code] })),
   );
   el.innerHTML = `
-    <h2>${esc(city?.name ?? picked.name)}</h2>
+    <h2>${esc((city?.name ?? picked.name).split("/")[0])}</h2>
     <p class="meta">${city ? period(city.from, city.to) : ""}・${picked.date.slice(0, 4)}年の境界</p>
     ${links.length > 1 ? `<p class="note">今は ${links.length} つの市区町村に分かれています。</p>` : ""}
     ${picked.code ? registryBlock(data.registry[picked.code]) : ""}

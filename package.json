@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "deploy": "pnpm build && wrangler deploy",
     "build:data": "uv run --with 'duckdb>=1.4,<2' python scripts/build_data.py",
     "preview": "vite preview"
   },

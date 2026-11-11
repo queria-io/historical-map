@@ -46,11 +46,18 @@ const style = (era: Era): StyleSpecification => ({
       },
     },
     {
+      id: "city-casing",
+      type: "line",
+      source: "boundary",
+      "source-layer": boundaryLayer(era),
+      paint: { "line-color": "#111827", "line-opacity": 0.7, "line-width": ["interpolate", ["linear"], ["zoom"], 6, 1.6, 12, 4] },
+    },
+    {
       id: "city-line",
       type: "line",
       source: "boundary",
       "source-layer": boundaryLayer(era),
-      paint: { "line-color": "#fbbf24", "line-width": ["interpolate", ["linear"], ["zoom"], 6, 0.6, 12, 2] },
+      paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 6, 0.6, 12, 1.6] },
     },
   ],
 });
@@ -64,7 +71,7 @@ const eraOf = (id: string) => ERAS.find((e) => e.id === id) ?? ERAS[0];
 const map = new maplibregl.Map({
   container: "map",
   style: style(eraOf(select.value)),
-  center: [136.5, 35.1],
+  center: [139.6, 35.7],
   zoom: 10,
   hash: true,
 });
@@ -79,6 +86,7 @@ const setPicked = (id: string | number | undefined) => {
 
 select.addEventListener("change", () => {
   picked = undefined;
+  panel.hidden = true;
   map.setStyle(style(eraOf(select.value)));
   map.once("styledata", () => map.setPaintProperty("photo", "raster-opacity", Number(opacity.value)));
 });

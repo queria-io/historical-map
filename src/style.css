@@ -44,3 +44,4 @@ a { color: var(--c0); }
   main { flex-direction: column; }
   #panel { width: auto; max-height: 45vh; border-left: 0; border-top: 1px solid var(--line); }
 }
+header .hint { font-size: 12px; color: var(--muted); }
