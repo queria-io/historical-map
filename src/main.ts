@@ -2,9 +2,11 @@ import maplibregl, { type StyleSpecification } from "maplibre-gl";
 import { Protocol } from "pmtiles";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
+import "./nodata";
 import { boundaryLayer, CURRENT_MAPS, type Era, ERAS, PALE_TILES, PHOTO_MAXZOOM, PHOTO_MINZOOM } from "./eras";
 import { getDB } from "./db";
 import { esc, renderPanel } from "./panel";
+import { existsAt, type Hit, search } from "./search";
 import logo from "./queria-logo.svg?raw";
 
 /** 当時の市区町村の境界 (dataset-codh の scripts/build-tiles.sh) */
@@ -36,6 +38,7 @@ let picked: string | undefined;
 
 const saveUrl = () => {
   const q = new URLSearchParams({ era: state.era.id, screens: String(state.screens), now: state.current.id });
+  if (picked) q.set("city", picked);
   history.replaceState(null, "", `?${q}${location.hash}`);
 };
 
@@ -110,6 +113,8 @@ const nowStyle = (c: (typeof CURRENT_MAPS)[number], era: Era): StyleSpecificatio
       { id: "now", type: "raster", source: "now" },
       { id: "now-casing", type: "line", source: "city", "source-layer": "city", layout: { visibility }, paint: { "line-color": "#ffffff", "line-opacity": 0.8, "line-width": lineWidth(2, 4.5) } },
       { id: "now-line", type: "line", source: "city", "source-layer": "city", layout: { visibility }, paint: { "line-color": "#7846be", "line-width": lineWidth(0.8, 2) } },
+      // クリックで当時の市町村を選ぶための見えない塗り
+      { id: "old-fill", type: "fill", source: "boundary", "source-layer": boundaryLayer(era), paint: { "fill-opacity": 0 } },
       {
         id: "old-line",
         type: "line",
@@ -161,6 +166,16 @@ const cross = (target: maplibregl.Map) => {
     }
   };
 };
+// どちらが当時でどちらが現在かを、地図の左上に出す
+const badge = (target: maplibregl.Map, kind: "old" | "now") => {
+  const el = document.createElement("div");
+  el.className = `badge badge-${kind}`;
+  target.getContainer().append(el);
+  return el;
+};
+const oldBadge = badge(map, "old");
+const nowBadge = badge(now, "now");
+
 const showOnNow = cross(now);
 const showOnOld = cross(map);
 map.on("mousemove", (e) => showOnNow(e.lngLat));
@@ -178,21 +193,26 @@ const setPicked = (id: string | undefined) => {
   if (now.getLayer("picked-line")) now.setFilter("picked-line", ["==", ["get", "id"], id ?? ""]);
 };
 
-map.on("mousemove", "city-fill", () => (map.getCanvas().style.cursor = "pointer"));
-map.on("mouseleave", "city-fill", () => (map.getCanvas().style.cursor = ""));
-map.on("click", "city-fill", (e) => {
-  const f = e.features?.[0];
-  const props = f?.properties as { id?: string; code?: string; name?: string } | undefined;
-  if (!f || !props?.id) return;
-  const id = props.id;
+// 左の当時の地図でも、右の今の地図でも、当時の市町村をクリックで選べる
+const show = (id: string, name?: string) => {
   setPicked(id);
+  saveUrl();
   panel.hidden = false;
   resize();
-  renderPanel(panel, { id, code: props.code, name: props.name ?? id, date: state.era.boundaryDate }).catch((err: unknown) => {
+  renderPanel(panel, { id, name: name ?? id, date: state.era.boundaryDate }).catch((err: unknown) => {
     // 別の市町村を選び直した後や年代を変えた後に届いた失敗は書かない
     if (picked === id) panel.innerHTML = `<p class="note">統計を読み込めませんでした（${esc(String(err))}）。</p>`;
   });
-});
+};
+const pick = (e: maplibregl.MapLayerMouseEvent) => {
+  const props = e.features?.[0]?.properties as { id?: string; name?: string } | undefined;
+  if (props?.id) show(props.id, props.name);
+};
+for (const [target, layer] of [[map, "city-fill"], [now, "old-fill"]] as const) {
+  target.on("mousemove", layer, () => (target.getCanvas().style.cursor = "pointer"));
+  target.on("mouseleave", layer, () => (target.getCanvas().style.cursor = ""));
+  target.on("click", layer, pick);
+}
 
 const resize = () => {
   map.resize();
@@ -209,6 +229,8 @@ const currentSelect = $<HTMLSelectElement>("#current");
 currentSelect.innerHTML = CURRENT_MAPS.map((c) => `<option value="${c.id}">${c.label}</option>`).join("");
 
 const render = () => {
+  oldBadge.innerHTML = `<b>${state.era.label}</b><span>空中写真・当時の境界</span>`;
+  nowBadge.innerHTML = `<b>現在</b><span>${state.current.label}・今の境界</span>`;
   erasEl.querySelectorAll<HTMLInputElement>("input").forEach((r) => (r.checked = r.value === state.era.id));
   document.querySelectorAll<HTMLInputElement>('input[name="screens"]').forEach((r) => (r.checked = r.value === String(state.screens)));
   currentSelect.value = state.current.id;
@@ -261,6 +283,69 @@ $<HTMLInputElement>("#now-boundary").addEventListener("change", (e) => {
   for (const id of ["now-casing", "now-line"]) now.setLayoutProperty(id, "visibility", state.nowBoundary ? "visible" : "none");
 });
 
+// 地名の検索
+const qInput = $<HTMLInputElement>("#q");
+const hitsEl = $<HTMLUListElement>("#hits");
+let hits: Hit[] = [];
+let ticket = 0;
+let timer: ReturnType<typeof setTimeout> | undefined;
+const listHits = (items: Hit[], empty = "見つかりませんでした") => {
+  hits = items;
+  hitsEl.hidden = false;
+  hitsEl.innerHTML = items.length
+    ? items.map((h, i) => `<li data-i="${i}">${esc(h.label)}<small>${esc(h.note)}</small></li>`).join("")
+    : `<li class="empty">${empty}</li>`;
+};
+const go = (h: Hit) => {
+  // 待っている検索の結果で、選んだ後に一覧が開き直らないようにする
+  clearTimeout(timer);
+  ticket++;
+  hitsEl.hidden = true;
+  qInput.value = h.label;
+  // 統計の欄を開くと地図の大きさが変わってアニメーションが止まるので、動かさずに移す
+  map.jumpTo({ center: [h.lng, h.lat], zoom: Math.max(map.getZoom(), h.id ? 12 : 14) });
+  // 今の年代に無い市町村は、あった年代のうち一番新しいものに切り替える
+  const id = h.id;
+  const era = id && (existsAt(h, state.era.boundaryDate) ? state.era : [...ERAS].reverse().find((e) => existsAt(h, e.boundaryDate)));
+  if (!id || !era) return;
+  if (era === state.era) return show(id, h.label);
+  // 移った先で新しい年代のタイルを読んでから塗る
+  setEra(era);
+  map.once("idle", () => show(id, h.label));
+};
+qInput.addEventListener("input", () => {
+  clearTimeout(timer);
+  // 前の語の結果を Enter で選ばないようにする
+  hits = [];
+  const q = qInput.value.trim();
+  if (!q) {
+    hitsEl.hidden = true;
+    return;
+  }
+  timer = setTimeout(() => {
+    const mine = ++ticket;
+    listHits([], "検索しています…");
+    search(q, state.era.boundaryDate)
+      .then((items) => mine === ticket && listHits(items))
+      .catch(() => mine === ticket && listHits([], "検索できませんでした"));
+  }, 300);
+});
+qInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && hits[0]) go(hits[0]);
+  if (e.key === "Escape") hitsEl.hidden = true;
+});
+hitsEl.addEventListener("click", (e) => {
+  const h = hits[Number((e.target as HTMLElement).closest<HTMLElement>("li[data-i]")?.dataset.i)];
+  if (h) go(h);
+});
+
+const about = $<HTMLDialogElement>("#about");
+$("#about-open").addEventListener("click", () => about.showModal());
+
 render();
+// 共有された URL (?city=) の市町村を開く。塗りは境界のタイルを読んでから付ける
+const shared = params.get("city");
+// 境界を読み終える前に別の市町村を選んでいたら、そちらを残す
+if (shared) map.once("idle", () => picked === undefined && show(shared));
 // クリックを待たずに DuckDB を起こしておく
 getDB().catch(() => undefined);
