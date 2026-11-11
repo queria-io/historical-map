@@ -1,12 +1,12 @@
 // 画面の状態を 1 か所に持ち、地図のスタイル・統計の欄・URL をそこから作る
-import type maplibregl from "maplibre-gl";
+import maplibregl from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { About } from "./About";
 import { Controls, type Settings } from "./Controls";
-import { boundaryLayer, CURRENT_MAPS, ERAS } from "./eras";
+import { boundaryLayer, CURRENT_MAPS, ERAS, PHOTO_MAXZOOM, PHOTO_MINZOOM } from "./eras";
 import { featureBounds, focusFeature } from "./kit/bounds";
 import { MapView } from "./kit/MapView";
-import { onPhotoTile } from "./kit/photoTiles";
+import { photoCoverage } from "./kit/photoTiles";
 import { crosshair, syncMaps } from "./kit/sync";
 import { nowStyle, oldStyle } from "./mapStyles";
 import { Panel } from "./Panel";
@@ -26,26 +26,15 @@ const initial: Settings = {
 };
 const shared = params.get("city");
 
-/** 写真のタイルを読んだ数。動かすたびに数え直し、止まったときに 1 枚も無ければ知らせる */
+/** 地図が止まったときに、表示している範囲にその年代の写真が 1 枚も無ければ知らせる */
 const usePhotoMissing = (map: maplibregl.Map | null, era: Settings["era"]) => {
   const [missing, setMissing] = useState(false);
   useEffect(() => {
     if (!map) return;
-    const count = { found: 0, missing: 0 };
-    const reset = () => Object.assign(count, { found: 0, missing: 0 });
-    const off = onPhotoTile((found) => (found ? count.found++ : count.missing++));
-    const idle = () => {
-      // 前に読んだタイルだけで描けたときは、数えるものが無いので前の表示のままにする
-      if (count.found > 0) setMissing(false);
-      else if (count.missing > 0) setMissing(true);
-    };
-    reset();
+    const idle = () => setMissing(photoCoverage(map, era.tiles, PHOTO_MINZOOM, PHOTO_MAXZOOM) === false);
     setMissing(false);
-    map.on("movestart", reset);
     map.on("idle", idle);
     return () => {
-      off();
-      map.off("movestart", reset);
       map.off("idle", idle);
     };
   }, [map, era]);
@@ -84,19 +73,20 @@ export const App = () => {
     return () => offs.forEach((off) => off());
   }, [left, right]);
 
-  // 選んだ市町村に寄せる
-  const pickedId = useRef<string | undefined>(undefined);
-  pickedId.current = picked?.id;
+  // 選んだ市町村に寄せる。同じ市町村を選び直したときも寄せ直す
+  const pickedNow = useRef(picked);
+  pickedNow.current = picked;
   useEffect(() => {
-    const id = picked?.id;
-    if (!left || !id) return;
-    const filter: maplibregl.FilterSpecification = ["==", ["get", "id"], id];
-    focusFeature(left, () => featureBounds(left, "boundary", boundaryLayer(era), filter), () => pickedId.current === id);
-  }, [left, picked?.id, era]);
+    if (!left || !picked) return;
+    const filter: maplibregl.FilterSpecification = ["==", ["get", "id"], picked.id];
+    focusFeature(left, () => featureBounds(left, "boundary", boundaryLayer(era), filter), () => pickedNow.current === picked);
+  }, [left, picked, era]);
 
-  // どちらの地図でも、当時の市町村をクリックで選べる
-  const clickable = (layer: string, onMap: (m: maplibregl.Map) => void) => (m: maplibregl.Map) => {
+  // どちらの地図でも、当時の市町村をクリックで選べる。ズームのボタンも付ける
+  type Nav = maplibregl.NavigationControlOptions;
+  const clickable = (layer: string, onMap: (m: maplibregl.Map) => void, nav?: Nav) => (m: maplibregl.Map) => {
     onMap(m);
+    m.addControl(new maplibregl.NavigationControl(nav), "top-right");
     m.on("mousemove", layer, () => (m.getCanvas().style.cursor = "pointer"));
     m.on("mouseleave", layer, () => (m.getCanvas().style.cursor = ""));
     m.on("click", layer, (e) => {
@@ -145,7 +135,7 @@ export const App = () => {
           <MapView
             style={nowMap}
             options={{ center: [139.6, 35.7], zoom: 10 }}
-            onReady={clickable("old-fill", setRight)}
+            onReady={clickable("old-fill", setRight, { showCompass: false })}
             hidden={screens === 1}
           >
             <div className="badge badge-now">

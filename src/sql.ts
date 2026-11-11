@@ -75,9 +75,9 @@ USING any_value(value) GROUP BY year ORDER BY year`;
 
 // --- 今の市区町村の住宅地の地価 (地価公示・地価調査。1995 年から) ---
 // 地点の市区町村コードはその年のものなので、今の市区町村に入った昔の市区町村のコードも含める
-export type LandPrice = { year: number; price: number; points: number };
+export type LandPrice = { year: number; price: number };
 export const landPriceSql = (code: string) => `
-SELECT year, median(current_price) AS price, count(*) AS points
+SELECT year, median(current_price) AS price
 FROM reinfolib.main.mart_land_prices
 WHERE use_category = '住宅地' AND city_code IN (
   SELECT DISTINCT city_code FROM codh.city.municipality WHERE current_city_code = ${lit(code)} AND city_code IS NOT NULL

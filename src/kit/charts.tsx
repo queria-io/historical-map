@@ -46,40 +46,6 @@ export const LineChart = ({ series }: { series: { label: string; points: Point[]
   );
 };
 
-export type AgeRow = { age: number; male: number; female: number };
-
-/** 人口ピラミッド。左が男、右が女。age は 5 歳階級の下限 */
-export const Pyramid = ({ rows }: { rows: AgeRow[] }) => {
-  const sorted = [...rows].sort((a, b) => b.age - a.age);
-  const sum = (k: "male" | "female") => rows.reduce((s, r) => s + r[k], 0);
-  const total = sum("male") + sum("female") || 1;
-  const max = Math.max(...rows.flatMap((r) => [r.male, r.female]), 1);
-  const [w, rowH, mid] = [280, 9, 140];
-  const half = mid - 18;
-  const h = 14 + sorted.length * rowH + 4;
-  return (
-    <svg className="pyramid" viewBox={`0 0 ${w} ${h}`} role="img">
-      <text x={4} y={10}>男 {pct(sum("male") / total)}</text>
-      <text x={w - 4} y={10} textAnchor="end">女 {pct(sum("female") / total)}</text>
-      {sorted.map((r, i) => {
-        const y = 14 + i * rowH;
-        const [lm, lf] = [(r.male / max) * half, (r.female / max) * half];
-        return (
-          <g key={r.age}>
-            <rect className="male" x={mid - 16 - lm} y={y} width={lm} height={rowH - 1.5}>
-              <title>{`男 ${r.age}歳〜 ${num(r.male)}`}</title>
-            </rect>
-            <rect className="female" x={mid + 16} y={y} width={lf} height={rowH - 1.5}>
-              <title>{`女 ${r.age}歳〜 ${num(r.female)}`}</title>
-            </rect>
-            {r.age % 10 === 0 && <text x={mid} y={y + rowH - 2} textAnchor="middle">{r.age}</text>}
-          </g>
-        );
-      })}
-    </svg>
-  );
-};
-
 export type ShareRow = { year: number; young: number; working: number; old: number };
 
 /** 年齢 3 区分の割合を年ごとに 100% の横棒で並べる */

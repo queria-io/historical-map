@@ -18,10 +18,12 @@ type Props = {
 export const MapView = ({ style, onReady, options, hidden, children }: Props) => {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
+  /** 地図に当てたスタイル。同じものを setStyle すると、読み込み前は差分を取れずに作り直しになる */
+  const applied = useRef(style);
 
   useEffect(() => {
     if (!container.current) return;
-    const m = new maplibregl.Map({ container: container.current, style, ...options });
+    const m = new maplibregl.Map({ container: container.current, style: applied.current, ...options });
     map.current = m;
     const cleanup = onReady?.(m);
     return () => {
@@ -33,7 +35,9 @@ export const MapView = ({ style, onReady, options, hidden, children }: Props) =>
   }, []);
 
   useEffect(() => {
-    map.current?.setStyle(style);
+    if (!map.current || applied.current === style) return;
+    applied.current = style;
+    map.current.setStyle(style);
   }, [style]);
 
   return (
