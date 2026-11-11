@@ -1,5 +1,6 @@
 // 地名の検索。当時の市町村名は codh.city.municipality から、今の住所は Queria のジオコーダーから引く
 import { query } from "./db";
+import { ERAS } from "./eras";
 
 export type Hit = {
   label: string;
@@ -51,16 +52,24 @@ const address = async (q: string): Promise<Hit[]> => {
   const res = await fetch(`${GEOCODER}?address=${encodeURIComponent(q)}`);
   if (!res.ok) return [];
   const body = (await res.json()) as {
-    results: { matched_address: string; unmatched_address: string[] | null; lat: number; lng: number; ambiguous: boolean }[];
+    results: { matched_address: string; unmatched_address: string[] | null; lat: number | null; lng: number | null; ambiguous: boolean }[];
   };
   return body.results
-    .filter((r) => !r.ambiguous && !r.unmatched_address?.length)
-    .map((r) => ({ label: r.matched_address, note: "今の住所", lng: r.lng, lat: r.lat }));
+    .flatMap((r) =>
+      // 都道府県だけ一致したものは座標が null
+      !r.ambiguous && !r.unmatched_address?.length && r.lng != null && r.lat != null
+        ? [{ label: r.matched_address, note: "今の住所", lng: r.lng, lat: r.lat }]
+        : [],
+    );
 };
 
 /** 当時の市町村名と今の住所を並べて返す。片方が失敗しても、もう片方は返す */
 export const search = async (q: string, date: string): Promise<Hit[]> => {
-  const [a, b] = await Promise.allSettled([cities(q, date), address(q)]);
+  const [a, b] = await Promise.allSettled([
+    // どの年代の境界にも無い市町村 (1950年より前に消えたものなど) は、選んでも地図に出せないので除く
+    cities(q, date).then((hits) => hits.filter((h) => ERAS.some((e) => existsAt(h, e.boundaryDate)))),
+    address(q),
+  ]);
   return [a, b].flatMap((r) => (r.status === "fulfilled" ? r.value : []));
 };
 

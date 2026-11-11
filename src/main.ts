@@ -199,7 +199,7 @@ const show = (id: string, name?: string) => {
   saveUrl();
   panel.hidden = false;
   resize();
-  renderPanel(panel, { id, name: name ?? "", date: state.era.boundaryDate }).catch((err: unknown) => {
+  renderPanel(panel, { id, name: name ?? id, date: state.era.boundaryDate }).catch((err: unknown) => {
     // 別の市町村を選び直した後や年代を変えた後に届いた失敗は書かない
     if (picked === id) panel.innerHTML = `<p class="note">統計を読み込めませんでした（${esc(String(err))}）。</p>`;
   });
@@ -297,24 +297,26 @@ const listHits = (items: Hit[], empty = "見つかりませんでした") => {
     : `<li class="empty">${empty}</li>`;
 };
 const go = (h: Hit) => {
+  // 待っている検索の結果で、選んだ後に一覧が開き直らないようにする
+  clearTimeout(timer);
+  ticket++;
   hitsEl.hidden = true;
   qInput.value = h.label;
   // 統計の欄を開くと地図の大きさが変わってアニメーションが止まるので、動かさずに移す
-  const fly = () => map.jumpTo({ center: [h.lng, h.lat], zoom: Math.max(map.getZoom(), h.id ? 12 : 14) });
+  map.jumpTo({ center: [h.lng, h.lat], zoom: Math.max(map.getZoom(), h.id ? 12 : 14) });
   // 今の年代に無い市町村は、あった年代のうち一番新しいものに切り替える
   const id = h.id;
   const era = id && (existsAt(h, state.era.boundaryDate) ? state.era : [...ERAS].reverse().find((e) => existsAt(h, e.boundaryDate)));
-  if (!id || !era) return fly();
-  const open = () => {
-    show(id, h.label);
-    fly();
-  };
-  if (era === state.era) return open();
+  if (!id || !era) return;
+  if (era === state.era) return show(id, h.label);
+  // 移った先で新しい年代のタイルを読んでから塗る
   setEra(era);
-  map.once("idle", open);
+  map.once("idle", () => show(id, h.label));
 };
 qInput.addEventListener("input", () => {
   clearTimeout(timer);
+  // 前の語の結果を Enter で選ばないようにする
+  hits = [];
   const q = qInput.value.trim();
   if (!q) {
     hitsEl.hidden = true;
@@ -333,8 +335,8 @@ qInput.addEventListener("keydown", (e) => {
   if (e.key === "Escape") hitsEl.hidden = true;
 });
 hitsEl.addEventListener("click", (e) => {
-  const li = (e.target as HTMLElement).closest<HTMLElement>("li[data-i]");
-  if (li) go(hits[Number(li.dataset.i)]);
+  const h = hits[Number((e.target as HTMLElement).closest<HTMLElement>("li[data-i]")?.dataset.i)];
+  if (h) go(h);
 });
 
 const about = $<HTMLDialogElement>("#about");
@@ -343,6 +345,7 @@ $("#about-open").addEventListener("click", () => about.showModal());
 render();
 // 共有された URL (?city=) の市町村を開く。塗りは境界のタイルを読んでから付ける
 const shared = params.get("city");
-if (shared) map.once("idle", () => show(shared));
+// 境界を読み終える前に別の市町村を選んでいたら、そちらを残す
+if (shared) map.once("idle", () => picked === undefined && show(shared));
 // クリックを待たずに DuckDB を起こしておく
 getDB().catch(() => undefined);

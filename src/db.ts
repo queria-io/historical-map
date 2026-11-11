@@ -6,7 +6,7 @@ const WASM = "https://assets.queria.io/duckdb-wasm/1.33.1-dev57.0";
 const DATA = "https://data.queria.io/datasets/queria";
 
 /** 読むデータセット。SQL では <別名>.<スキーマ>.<テーブル> で書く */
-export const DATASETS = ["codh", "e_stat"] as const;
+const DATASETS = ["codh", "e_stat"] as const;
 
 const boot = async (): Promise<AsyncDuckDB> => {
   const duckdb = await import("@duckdb/duckdb-wasm");

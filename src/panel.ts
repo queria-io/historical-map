@@ -2,7 +2,7 @@
 import { ageShare, lineChart, type Point, pyramid } from "./chart";
 import { query } from "./db";
 
-export type Picked = { id: string; code?: string; name: string; date: string };
+export type Picked = { id: string; name: string; date: string };
 
 export const esc = (s: string) =>
   s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
@@ -109,12 +109,11 @@ const chainBlock = (before: Before[], steps: Step[]) => {
 };
 
 /** X での共有とリンクのコピー。URL には年代・位置・選んだ市町村が入る */
-const shareBar = (text: string) => {
-  const x = new URLSearchParams({ text, url: location.href, hashtags: "過去の地図と統計" });
-  return `<div class="share">
-    <a class="x" href="https://x.com/intent/post?${esc(x.toString())}" target="_blank" rel="noopener">X でシェア</a>
+const xIntent = (text: string) =>
+  `https://x.com/intent/post?${new URLSearchParams({ text, url: location.href, hashtags: "過去の地図と統計" })}`;
+const shareBar = (text: string) => `<div class="share">
+    <a class="x" href="${esc(xIntent(text))}" data-text="${esc(text)}" target="_blank" rel="noopener">X でシェア</a>
     <button class="copy" type="button">リンクをコピー</button></div>`;
-};
 
 const row = (label: string, then: string, now: string) => `<tr><th>${label}</th><td>${then}</td><td>${now}</td></tr>`;
 
@@ -173,6 +172,11 @@ export async function renderPanel(el: HTMLElement, picked: Picked): Promise<void
       データ: Queria の <a href="https://queria.io/datasets/queria/codh" target="_blank" rel="noopener">codh</a>・<a href="https://queria.io/datasets/queria/e_stat" target="_blank" rel="noopener">e_stat</a>（${((performance.now() - started) / 1000).toFixed(1)} 秒）<br />
       <a href="https://geoshape.ex.nii.ac.jp/city/resource/${esc(picked.id)}.html" target="_blank" rel="noopener">CODH の市区町村のページ</a>
     </p>`;
+  // 欄を出した後に地図を動かしても、押したときの位置で共有する
+  el.querySelector<HTMLAnchorElement>(".share .x")?.addEventListener("click", (e) => {
+    const a = e.currentTarget as HTMLAnchorElement;
+    a.href = xIntent(a.dataset.text ?? "");
+  });
   el.querySelector<HTMLButtonElement>(".share .copy")?.addEventListener("click", (e) => {
     const button = e.currentTarget as HTMLButtonElement;
     navigator.clipboard.writeText(location.href).then(
