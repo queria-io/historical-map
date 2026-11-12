@@ -4,7 +4,6 @@ import { connect } from "queria";
 const conn = connect({ datasets: ["queria/codh", "queria/e_stat", "queria/reinfolib"] });
 
 export const query = conn.sql;
-export const sources = conn.sources;
 
 /** データセットを先に ATTACH しておく。最初の表示を待たせないため、地図を開いたときに呼ぶ */
 export const preload = (tables: readonly string[]): Promise<unknown> =>
