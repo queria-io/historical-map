@@ -14,7 +14,9 @@ import { Panel } from "./Panel";
 import { preload } from "./queria";
 import { existsAt, type Hit, search } from "./search";
 
-type Picked = { id: string; name: string };
+/** fit: false は住所から選んだとき。住所に寄せたまま、市町村の全体には引かない */
+type Picked = { id: string; name: string; fit?: boolean };
+type LngLat = [number, number];
 
 const params = new URLSearchParams(location.search);
 const initial: Settings = {
@@ -78,7 +80,7 @@ export const App = () => {
   const pickedNow = useRef(picked);
   pickedNow.current = picked;
   useEffect(() => {
-    if (!left || !picked) return;
+    if (!left || !picked || picked.fit === false) return;
     const filter: maplibregl.FilterSpecification = ["==", ["get", "id"], picked.id];
     focusFeature(left, () => featureBounds(left, "boundary", boundaryLayer(era), filter), () => pickedNow.current === picked);
   }, [left, picked, era]);
@@ -100,9 +102,31 @@ export const App = () => {
     });
   };
 
+  // 検索した住所。両方の地図に印を付け、その地点を含む当時の市町村を選ぶ (年代を変えても選び直す)
+  const [home, setHome] = useState<LngLat>();
+  useEffect(() => {
+    if (!home) return;
+    const markers = [left, right].flatMap((m) => (m ? [new maplibregl.Marker({ color: "#dc2626" }).setLngLat(home).addTo(m)] : []));
+    return () => markers.forEach((m) => m.remove());
+  }, [home, left, right]);
+  useEffect(() => {
+    if (!left || !home) return;
+    const pick = () => {
+      const f = left.queryRenderedFeatures(left.project(home), { layers: ["city-fill"] })[0];
+      const id: unknown = f?.properties?.id;
+      const name: unknown = f?.properties?.name;
+      if (typeof id === "string") setPicked({ id, name: typeof name === "string" ? name : id, fit: false });
+    };
+    left.once("idle", pick);
+    return () => {
+      left.off("idle", pick);
+    };
+  }, [left, home, era]);
+
   const onPick = (hit: Hit) => {
-    left?.jumpTo({ center: [hit.lng, hit.lat], zoom: Math.max(left.getZoom(), hit.id ? 12 : 14) });
+    left?.jumpTo({ center: [hit.lng, hit.lat], zoom: Math.max(left.getZoom(), hit.id ? 12 : 15) });
     const id = hit.id;
+    setHome(id ? undefined : [hit.lng, hit.lat]);
     if (!id) return;
     // 今の年代に無い市町村は、あった年代のうち一番新しいものに切り替える
     const target = existsAt(hit, era.boundaryDate) ? era : [...ERAS].reverse().find((e) => existsAt(hit, e.boundaryDate));
