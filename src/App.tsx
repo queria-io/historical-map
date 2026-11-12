@@ -123,7 +123,7 @@ export const App = () => {
 
   // クリックを待たずに DuckDB を起こして、最初に使うデータセットを読んでおく
   useEffect(() => {
-    preload(["codh"]).catch(() => undefined);
+    preload(["codh.city.municipality"]).catch(() => undefined);
   }, []);
 
   return (
