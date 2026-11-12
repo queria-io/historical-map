@@ -8,6 +8,8 @@ export type Era = {
   label: string;
   tiles: string;
   boundaryDate: string;
+  /** 統計を見る年。写真の年代の真ん中 (境界の基準日は codh の境界がある日なので、写真の年代とずれることがある) */
+  year: number;
 };
 
 const gsi = (id: string, ext: string) =>
@@ -16,12 +18,12 @@ const gsi = (id: string, ext: string) =>
 const photo = (id: string, ext: string) => photoUrl(gsi(id, ext));
 
 export const ERAS: readonly Era[] = [
-  { id: "1945", label: "1945〜1950年", tiles: photo("ort_USA10", "png"), boundaryDate: "1950-10-01" },
-  { id: "1961", label: "1961〜1969年", tiles: photo("ort_old10", "png"), boundaryDate: "1965-10-01" },
-  { id: "1974", label: "1974〜1978年", tiles: photo("gazo1", "jpg"), boundaryDate: "1975-10-01" },
-  { id: "1979", label: "1979〜1983年", tiles: photo("gazo2", "jpg"), boundaryDate: "1980-10-01" },
-  { id: "1984", label: "1984〜1986年", tiles: photo("gazo3", "jpg"), boundaryDate: "1985-10-01" },
-  { id: "1987", label: "1987〜1990年", tiles: photo("gazo4", "jpg"), boundaryDate: "1985-10-01" },
+  { id: "1945", label: "1945〜1950年", tiles: photo("ort_USA10", "png"), boundaryDate: "1950-10-01", year: 1948 },
+  { id: "1961", label: "1961〜1969年", tiles: photo("ort_old10", "png"), boundaryDate: "1965-10-01", year: 1965 },
+  { id: "1974", label: "1974〜1978年", tiles: photo("gazo1", "jpg"), boundaryDate: "1975-10-01", year: 1976 },
+  { id: "1979", label: "1979〜1983年", tiles: photo("gazo2", "jpg"), boundaryDate: "1980-10-01", year: 1981 },
+  { id: "1984", label: "1984〜1986年", tiles: photo("gazo3", "jpg"), boundaryDate: "1985-10-01", year: 1985 },
+  { id: "1987", label: "1987〜1990年", tiles: photo("gazo4", "jpg"), boundaryDate: "1985-10-01", year: 1989 },
 ];
 
 /** 写真のズームの範囲 (地理院タイル一覧) */
@@ -34,7 +36,6 @@ export const boundaryLayer = (era: Era) => `city_${era.boundaryDate.replaceAll("
 
 /** 右の地図 (今の地図) に選べる地理院タイル */
 export const CURRENT_MAPS = [
-  { id: "pale", label: "淡色地図", tiles: PALE_TILES, maxzoom: 18 },
+  { id: "photo", label: "最新の空中写真", tiles: gsi("seamlessphoto", "jpg"), maxzoom: 18 },
   { id: "std", label: "標準地図", tiles: gsi("std", "png"), maxzoom: 18 },
-  { id: "photo", label: "最新の写真", tiles: gsi("seamlessphoto", "jpg"), maxzoom: 18 },
 ] as const;

@@ -46,51 +46,21 @@ export const LineChart = ({ series }: { series: { label: string; points: Point[]
   );
 };
 
-export type AgeRow = { age: number; male: number; female: number };
+export type ShareRow = { year: number; parts: number[] };
 
-/** 人口ピラミッド。左が男、右が女。age は 5 歳階級の下限 */
-export const Pyramid = ({ rows }: { rows: AgeRow[] }) => {
-  const sorted = [...rows].sort((a, b) => b.age - a.age);
-  const sum = (k: "male" | "female") => rows.reduce((s, r) => s + r[k], 0);
-  const total = sum("male") + sum("female") || 1;
-  const max = Math.max(...rows.flatMap((r) => [r.male, r.female]), 1);
-  const [w, rowH, mid] = [280, 9, 140];
-  const half = mid - 18;
-  const h = 14 + sorted.length * rowH + 4;
-  return (
-    <svg className="pyramid" viewBox={`0 0 ${w} ${h}`} role="img">
-      <text x={4} y={10}>男 {pct(sum("male") / total)}</text>
-      <text x={w - 4} y={10} textAnchor="end">女 {pct(sum("female") / total)}</text>
-      {sorted.map((r, i) => {
-        const y = 14 + i * rowH;
-        const [lm, lf] = [(r.male / max) * half, (r.female / max) * half];
-        return (
-          <g key={r.age}>
-            <rect className="male" x={mid - 16 - lm} y={y} width={lm} height={rowH - 1.5}>
-              <title>{`男 ${r.age}歳〜 ${num(r.male)}`}</title>
-            </rect>
-            <rect className="female" x={mid + 16} y={y} width={lf} height={rowH - 1.5}>
-              <title>{`女 ${r.age}歳〜 ${num(r.female)}`}</title>
-            </rect>
-            {r.age % 10 === 0 && <text x={mid} y={y + rowH - 2} textAnchor="middle">{r.age}</text>}
-          </g>
-        );
-      })}
-    </svg>
-  );
+const fractions = (parts: number[]) => {
+  const t = parts.reduce((a, b) => a + b, 0) || 1;
+  return parts.map((p) => p / t);
 };
 
-export type ShareRow = { year: number; young: number; working: number; old: number };
-
-/** 年齢 3 区分の割合を年ごとに 100% の横棒で並べる */
-export const AgeShare = ({ rows }: { rows: ShareRow[] }) => {
+/** 割合を年ごとに 100% の横棒で並べる。parts は labels と同じ順 */
+export const ShareBars = ({ rows, labels }: { rows: ShareRow[]; labels: string[] }) => {
   const [w, rowH, left] = [280, 22, 34];
   return (
     <>
       <svg viewBox={`0 0 ${w} ${rows.length * rowH}`} role="img">
         {rows.map((r, i) => {
-          const t = r.young + r.working + r.old || 1;
-          const parts = [r.young / t, r.working / t, r.old / t];
+          const parts = fractions(r.parts);
           const starts = parts.map((_, j) => left + parts.slice(0, j).reduce((s, p) => s + p, 0) * (w - left));
           const y = i * rowH;
           return (
@@ -108,11 +78,45 @@ export const AgeShare = ({ rows }: { rows: ShareRow[] }) => {
           );
         })}
       </svg>
-      <div className="legend">
-        <span className="key share-0">0〜14歳</span>
-        <span className="key share-1">15〜64歳</span>
-        <span className="key share-2">65歳以上</span>
-      </div>
+      <Legend labels={labels} />
     </>
+  );
+};
+
+export const Legend = ({ labels }: { labels: string[] }) => (
+  <div className="legend">
+    {labels.map((l, j) => (
+      <span key={l} className={`key share-${j}`}>{l}</span>
+    ))}
+  </div>
+);
+
+/** 1 本だけの細い 100% の横棒 */
+export const ShareBar = ({ parts, labels }: { parts: number[]; labels: string[] }) => {
+  const f = fractions(parts);
+  return (
+    <span className="sharebar">
+      {f.map((p, j) => (
+        <span key={j} className={`share-${j}`} style={{ width: pct(p) }} title={`${labels[j]} ${pct(p)}`} />
+      ))}
+    </span>
+  );
+};
+
+/** 小さな折れ線。mark の年に点を打つ */
+export const Sparkline = ({ points, mark }: { points: Point[]; mark?: number }) => {
+  if (points.length < 2) return <span className="spark" />;
+  const [W, H, p] = [72, 20, 2];
+  const xs = points.map((q) => q[0]);
+  const ys = points.map((q) => q[1]);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const x = (v: number) => p + ((v - x0) / Math.max(x1 - x0, 1)) * (W - 2 * p);
+  const y = (v: number) => H - p - ((v - y0) / Math.max(y1 - y0, 1e-9)) * (H - 2 * p);
+  const m = points.find((q) => q[0] === mark);
+  return (
+    <svg className="spark" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
+      <polyline points={points.map(([a, b]) => `${x(a)},${y(b)}`).join(" ")} />
+      {m && <circle cx={x(m[0])} cy={y(m[1])} r={2.5} />}
+    </svg>
   );
 };
