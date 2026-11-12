@@ -24,7 +24,7 @@
 
 React と MapLibre で書いています。ほかの地図のアプリでも使える部品は `src/kit/` に分けています。
 
-- `kit/db.ts`: ブラウザの DuckDB（WASM）で Queria のデータセットに SQL を実行する。SQL に名前が出てきたデータセットだけを ATTACH する
+- `queria.ts`: [queria](https://github.com/queria-io/queria-js) パッケージで、ブラウザの DuckDB（WASM）から Queria のデータセットに SQL を実行する。SQL に名前が出てきたデータセットだけを ATTACH する
 - `kit/MapView.tsx`: MapLibre の地図。スタイルを渡し直すと差分だけを当てる
 - `kit/sync.ts`・`kit/bounds.ts`: 2 つの地図の連動と十字、地物に寄せる処理
 - `kit/photoTiles.ts`: 地理院の年代別写真の黒い所を透明にし、写真の有無を知らせる

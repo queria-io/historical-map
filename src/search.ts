@@ -1,5 +1,5 @@
 // 地名の検索。当時の市町村名は codh.city.municipality から、今の住所は Queria のジオコーダーから引く
-import { lit } from "./kit/db";
+import { lit } from "queria";
 import { geocode } from "./kit/geocoder";
 import { query } from "./queria";
 import { ERAS } from "./eras";

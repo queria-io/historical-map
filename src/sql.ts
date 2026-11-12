@@ -1,5 +1,5 @@
 // 統計の欄が Queria に実行する SQL
-import { lit } from "./kit/db";
+import { lit } from "queria";
 
 // --- 当時の市町村と、今の市区町村との重なり ---
 export type City = {
