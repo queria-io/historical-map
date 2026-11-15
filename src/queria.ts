@@ -1,7 +1,7 @@
 // このアプリが読む Queria のデータセット。SQL では codh.city.municipality のように別名で書く
 import { connect } from "queria";
 
-const conn = connect({ datasets: ["queria/codh", "queria/e_stat", "queria/reinfolib"] });
+const conn = connect({ datasets: ["queria/codh", "queria/e_stat", "queria/reinfolib", "queria/soumu"] });
 
 export const query = conn.sql;
 

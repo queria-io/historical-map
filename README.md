@@ -12,7 +12,7 @@
 | --- | --- |
 | 当時の市町村の名前・期間・面積、今の市区町村との重なり | `codh.city.municipality`、`codh.city.current_overlap` |
 | 移り変わり（合併・編入・改称・分割） | `codh.city.succession` |
-| 今の市区町村の人口・世帯数・面積・人口密度 | `e_stat.census.census_municipality_2025` |
+| 今の市区町村の人口・世帯数・面積・人口密度 | `e_stat.census.census_municipality_2025`（名前は `soumu.code.municipality`） |
 | 当時の区域の人口・世帯数（1995 年から、その年の市町村コード） | `e_stat.resident_registry.population`（日本人住民） |
 | 今の市区町村の人口・年齢 3 区分の割合（今の区域に組み替えた値、1980 年から） | `e_stat.ssds.a_municipal_population` |
 | 小学校の児童数と学校数 | `e_stat.ssds.e_municipal_education` |

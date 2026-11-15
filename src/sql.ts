@@ -52,7 +52,7 @@ export const nowSql = (codes: string[]) => `
 SELECT c.area, concat_ws(' ', m.pref_name, m.district_name, m.municipality_name) AS name,
   c.population, c.households, c.area_km2, c.population_density
 FROM e_stat.census.census_municipality_2025 AS c
-JOIN e_stat.code.municipality AS m ON m.area_code = c.area
+JOIN soumu.code.municipality AS m ON m.area_code = c.area
 WHERE c.area IN (${codes.map(lit).join(", ")}) AND c.area_level IN ('city', 'ward', 'town_village')`;
 
 // --- 当時の区域の人口 (住民基本台帳。1995 年から、その年の市町村コード) ---

@@ -81,7 +81,8 @@ export const Panel = ({ id, name, date, year: target }: { id: string; name: stri
       <p className="source">
         データ: Queria の <a href="https://queria.io/datasets/queria/codh" target="_blank" rel="noopener">codh</a>・
         <a href="https://queria.io/datasets/queria/e_stat" target="_blank" rel="noopener">e_stat</a>・
-        <a href="https://queria.io/datasets/queria/reinfolib" target="_blank" rel="noopener">reinfolib</a>
+        <a href="https://queria.io/datasets/queria/reinfolib" target="_blank" rel="noopener">reinfolib</a>・
+        <a href="https://queria.io/datasets/queria/soumu" target="_blank" rel="noopener">soumu</a>
         <br />
         <a href={`https://geoshape.ex.nii.ac.jp/city/resource/${id}.html`} target="_blank" rel="noopener">
           CODH の市区町村のページ
